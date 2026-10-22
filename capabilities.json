@@ -1,0 +1,23 @@
+{
+    "android": {
+        "platformName": "Android",
+        "appium:deviceName": "your-device-name",
+        "appium:automationName": "UiAutomator2",
+        "appium:platformVersion": "",
+        "appium:noReset": true,
+        "appium:udid": "your-device-udid",
+        "appium:appPackage": "your.app.package",
+        "appium:appActivity": "your.app.MainActivity"
+    },
+    "ios": {
+        "appium:app": "/path/to/your/ios/app.ipa",
+        "appium:deviceName": "your-device-name",
+        "appium:platformVersion": "",
+        "appium:automationName": "XCUITest",
+        "appium:udid": "your-device-udid"
+    },
+    "general": {
+        "platformName": "Android",
+        "appium:automationName": "UiAutomator2"
+    }
+}

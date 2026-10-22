@@ -1,0 +1,65 @@
+/generate-user-guide
+
+# CONTEXT
+- Module: [VD: Đăng nhập / Khách hàng / Dự án — module PHẢI đã recon xong, có docs/requirements/<module>/]
+- Đối tượng đọc + vai trò: [VD: Nhân viên nội bộ vai trò Admin và Project Manager / Khách hàng dùng cổng /login]
+- Phiên bản phần mềm ghi ở đầu tài liệu: [VD: v2.4 — hoặc "trạng thái khảo sát ngày 18-08-2026" nếu hệ thống không công bố số phiên bản]
+
+# MODE
+[Xoá dòng không dùng:]
+- DOC — dùng lại ảnh trong docs/requirements/<module>/<nền-tảng>/evidence/, không mở browser; highlight vẽ lên ảnh có sẵn bằng scripts/user-guide/annotate.py
+- LIVE — mở browser thật, làm từng việc, chụp ảnh mới bằng dữ liệu mẫu; highlight bằng scripts/user-guide/ug-lib.js
+- VIDEO — như LIVE + quay video từng phần (mỗi phần 1 video) + 1 video trọn luồng full_walkthrough.mp4; highlight hiện cả trong video
+
+# NGÔN NGỮ (lang)
+- Ngôn ngữ tài liệu: [vi (mặc định) / en / ngôn ngữ khác]
+  → Áp cho toàn bộ: nội dung, tiêu đề mục, chú thích trên ảnh + video, chữ giao diện HTML. Chốt ngay từ đầu — đổi giữa chừng là chụp/quay lại toàn bộ
+- Nhãn trên giao diện phần mềm đang hiển thị bằng: [VD: tiếng Anh] → luôn chép NGUYÊN VĂN, không dịch nhãn
+
+# VIỆC CẦN HƯỚNG DẪN (khâu chính — có highlight, ảnh, video)
+[Liệt kê theo thứ tự thao tác; để trống = agent tự lập danh sách việc từ requirements rồi xin duyệt:]
+1. [VD: Thêm một khách hàng mới]
+2. [VD: Sửa thông tin liên hệ của khách hàng]
+3. [VD: Kiểm tra khách hàng đã có trong danh sách]
+
+# KHÂU PHỤ (không quay, không highlight — tài liệu chỉ ghi 1 dòng ở "Trước khi bắt đầu")
+[Xoá nếu không có:]
+- [VD: Tạo sẵn nhóm khách hàng "Nhóm mẫu" / đăng nhập / mở module]
+
+# PHẦN VIDEO (chỉ Mode VIDEO)
+[Để trống = agent gom các việc ở trên thành phần, mỗi phần ≤ ~2 phút:]
+- Phần 1: [VD: việc 1–2]
+- Phần 2: [VD: việc 3]
+
+# TÀI KHOẢN & DỮ LIỆU MẪU (Mode LIVE / VIDEO)
+- Tài khoản đúng vai trò đã nêu ở CONTEXT: [để trống = agent lấy từ .env; đăng nhập chạy ngoài video, mật khẩu không lọt vào hình]
+- Dữ liệu mẫu dùng khi quay: [VD: Công ty Mẫu ABC · demo@example.com — để trống = agent tự sinh, traceable theo ngày]
+- Môi trường dùng chung? [Có → cấm thao tác phá huỷ, viết hướng dẫn cho thao tác đó dựa trên evidence / Không]
+- Thao tác một chiều (bản ghi đã dùng thì khoá sửa…)? [Có → mỗi lần quay lại dùng đối tượng MỚI chưa dùng, không tắt/sửa cấu hình đang chạy được]
+
+# PHÁT HÀNH
+- Bản này gửi ra ngoài? [Có → HTML xuất bằng --release (cắt khối <!-- internal:start -->…<!-- internal:end --> chứa mục 6 "Vùng chưa xác minh") + soát ảnh/video kỹ hơn / Không → bản nội bộ, giữ mục 6]
+- Người nhận: [VD: khách hàng US / đội vận hành nội bộ]
+
+# LƯU Ý RIÊNG CỦA ĐỢT NÀY
+[Xoá phần không cần:]
+- Tính năng đã biết là hỏng / chưa hoạt động: [VD: ô "Remember me" — PO xác nhận không hoạt động]
+  → Chọn cách viết: [Nói thật ở FAQ / Ghi trung tính / Không nhắc tới]
+- Việc người dùng hay làm mà tài liệu requirements không nêu rõ: [VD: xuất danh sách ra Excel hàng tháng]
+- Việc cần bỏ khỏi hướng dẫn: [VD: thao tác xoá — chỉ Admin dùng, viết ở tài liệu riêng]
+
+# OUTPUT
+- docs/user-guides/<module>/user_guide_<module>.md
+- docs/user-guides/<module>/user_guide_<module>.html — LUÔN xuất ngay sau bản .md, ảnh + video nhúng sẵn (md2html.py --standalone --lang <lang> [--release]) → gửi 1 file là xem được hết
+- docs/user-guides/<module>/images/*.png — mọi ảnh có highlight, tên ASCII p<phần>-<việc>-s<bước>-<slug>.png
+- docs/user-guides/<module>/video/*.mp4 — Mode VIDEO: từng phần + full_walkthrough.mp4
+- 1 dòng ở docs/user-guides/README.md
+
+# GHI CHÚ
+- Tài liệu viết cho NGƯỜI DÙNG CUỐI, tổ chức theo VIỆC cần làm — không phải theo màn hình
+- KHÔNG bịa bước: mọi bước truy được về ảnh evidence đã mở / REQ ID / lần thao tác thật
+- Nhãn nút, tên menu, thông báo chép NGUYÊN VĂN từ màn hình — không diễn đạt lại
+- ⭐ HIGHLIGHT BẮT BUỘC ở mọi ảnh và mọi video: khung đỏ quanh vùng thao tác + số thứ tự click (khớp số bước, đánh lại từ 1 mỗi việc) + dải chú thích đáy màn hình. Một trang nhiều bước → một ảnh đánh số 1, 2, 3… cùng lúc. Không có ảnh trơn
+- Mở lại TỪNG ảnh sau khi chụp/vẽ: khung đúng phần tử, số đúng thứ tự, nhãn không đè chữ cần đọc
+- Bảng "Nếu không được" và mục FAQ lấy đúng số dòng có bằng chứng — 1 dòng cũng được, không có thì bỏ hẳn
+- 🔒 Ảnh và video phải dùng dữ liệu mẫu: không tên người, email, số điện thoại, số tiền thật; không URL nội bộ, không mật khẩu

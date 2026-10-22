@@ -1,0 +1,22 @@
+/compare-ui-from-figma-design [WEB / MOBILE]
+
+# CONTEXT
+- Link Figma: [https://www.figma.com/design/<fileKey>/...?node-id=<page hoặc khung>]
+- Module: [TEN_MODULE]
+- Khung cần so: [A-01,A-02 … — để trống = mọi khung màn hình trong page]
+
+# MODE WEB
+- URL môi trường: [URL — để trống nếu đã có trong .env / tài liệu module]
+
+# MODE MOBILE
+- Nền tảng: [Android / iOS]
+- App: [package / bundle id đã cài — để trống nếu đã khai trong capabilities.json]
+
+# CHUNG
+- Thông tin đăng nhập: [EMAIL] và [PASSWORD] — hoặc "lấy từ .env"
+- Môi trường dùng chung với người khác không: [Có / Không]
+
+# TÙY CHỌN
+- Kiểu chạy: [để trống = đầy đủ, ghi docs/ · nhanh = chỉ trả lời trong chat, không lưu · bổ sung = thêm khung vào lượt chạy gần nhất (cùng ngày, cùng bản build) · khung=còn-mở = so lại các khung còn DIFF chưa sửa]
+- Độ trung thực thiết kế: [wireframe / mockup — để trống để agent tự nhận biết]
+- Dung sai riêng của dự án: [VD vị trí ±2, ΔE ≤ 2 — để trống dùng mặc định của rule]

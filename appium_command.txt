@@ -1,0 +1,134 @@
+appium-doctor --android
+
+======================
+
+appium driver install <plugin-name>
+appium driver install uiautomator2
+appium driver install --source=npm appium-flutter-driver
+
+appium driver uninstall <plugin-name>
+appium driver uninstall uiautomator2
+
+appium driver update <plugin-name>
+appium driver update uiautomator2
+
+======================
+
+appium plugin install <plugin-name>
+appium plugin install images
+appium plugin install --source=npm appium-wait-plugin
+appium plugin install --source=npm appium-device-farm
+appium plugin install --source=npm appium-gestures-plugin
+
+appium plugin update <plugin-name>
+appium plugin update element-wait
+appium plugin update element-wait
+appium plugin update element-wait
+
+appium plugin uninstall <plugin-name>
+appium plugin uninstall execute-driver
+
+appium --use-plugins=element-wait,gestures
+
+
+
+appium -a 127.0.0.1 -p 4723
+
+appium -a 127.0.0.1 -p 4040 -pa /wd/hub --use-plugins=start-vision
+
+appium -a 127.0.0.2 -p 9000
+
+
+
+emulator @Pixel_9_Pro_XL_API_35
+emulator @Pixel_10_Pro_XL
+
+# Khởi động emulator mà không hiển thị GUI
+emulator -avd Pixel_9_Pro_XL_API_35 -no-window
+
+appium server -ka 800 --use-plugins=device-farm  -pa /wd/hub --plugin-device-farm-platform=android --plugin-device-farm-enable-authentication
+
+
+appium plugin run device-farm reset
+
+
+
+{
+  "platformName": "Android",
+  "appium:deviceName": "Pixel_8_Pro_API_34",
+  "appium:automationName": "UiAutomator2",
+  "appium:platformVersion": "14",
+  "appium:disableIdLocatorAutocompletion": true,
+  "appium:enforceXPath1": true
+}
+
+{
+  "platformName": "Android",
+  "appium:deviceName": "Pixel_9_Pro_XL_API_35",
+  "appium:automationName": "UiAutomator2",
+  "appium:platformVersion": "15",
+  "appium:noReset": true,
+  "appium:disableIdLocatorAutocompletion": true,
+  "appium:enforceXPath1": true
+}
+
+
+netstat -ano | findstr :5037
+taskkill /PID 12345 /F
+(12345 là PIP cần kill theo port)
+
+
+----- XỬ LÝ THÁO TRIỆT ĐỂ VERSION APPIUM TRONG MÁY -----
+
+**Mở Window Powershell
+
+Bước 1: Gỡ tất cả drivers
+appium driver uninstall uiautomator2
+appium driver uninstall xcuitest
+appium driver uninstall flutter
+appium driver uninstall flutter-integration
+
+Bước 2: Gỡ Appium global
+npm uninstall -g appium
+npm cache clean --force
+
+Bước 3: Xóa thư mục .appium (xóa toàn bộ driver data còn sót)
+Remove-Item -Recurse -Force "$env:USERPROFILE\.appium"
+
+Bước 4: Verify sạch hoàn toàn
+appium --version
+
+Kết quả mong đợi: 'appium' is not recognized as an internal or external command,
+operable program or batch file.
+
+NẾU CÀI LẠI THÌ:
+
+Cài Appium 2.x mới nhất:
+npm install -g appium@2
+ 
+Cài driver Android tương thích với Appium v2:
+appium driver install uiautomator2@2
+
+
+----- XỬ LÝ TRÙNG LẶP 2 VERSION APPIUM TRONG MÁY -----
+
+**Mở Window Powershell
+Cài Appium 2.x + driver uiautomator2 cho Appium 2.x
+
+Bước 1: Cài Appium 2.x (latest 2.x)
+npm install -g appium@2
+
+Bước 2: Verify version
+appium --version
+# Kết quả mong đợi: 2.x.x (ví dụ: 2.19.0)
+
+Bước 3: Lệnh để tạo sẵn .appium/package.json
+New-Item -ItemType Directory -Path "$env:USERPROFILE\.appium" -Force '{"name":"appium-home","version":"1.0.0","description":"Appium home directory"}' | Set-Content "$env:USERPROFILE\.appium\package.json"
+
+Bước 4: Cài uiautomator2 cho Appium 2.x
+appium driver install uiautomator2
+
+(Appium 2.x sẽ tự động cài uiautomator2@2.x.x — đúng version tương thích.)
+
+Bước 5: Verify
+appium driver list --installed

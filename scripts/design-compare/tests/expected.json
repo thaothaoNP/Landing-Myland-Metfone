@@ -1,0 +1,96 @@
+{
+ "A-01": {
+  "diff": 2,
+  "minor": 4,
+  "ok": 4
+ },
+ "A-02": {
+  "diff": 1,
+  "minor": 7,
+  "missing": 1,
+  "ok": 4
+ },
+ "A-03p1": {
+  "diff": 17,
+  "minor": 6,
+  "offscreen": 2,
+  "ok": 2
+ },
+ "A-03p2": {
+  "diff": 17,
+  "minor": 5,
+  "na": 1,
+  "offscreen": 3,
+  "ok": 2
+ },
+ "A-04": {
+  "diff": 5,
+  "minor": 5,
+  "missing": 1,
+  "na": 6
+ },
+ "A-05": {
+  "diff": 3,
+  "minor": 7,
+  "missing": 3,
+  "na": 6
+ },
+ "A-06": {
+  "diff": 4,
+  "minor": 5
+ },
+ "U-01": {
+  "diff": 10,
+  "extra": 1,
+  "minor": 6,
+  "missing": 3,
+  "na": 15
+ },
+ "U-03": {
+  "diff": 18,
+  "extra": 22,
+  "minor": 7,
+  "missing": 10,
+  "offscreen": 4,
+  "ok": 2
+ },
+ "U-05p1": {
+  "diff": 26,
+  "minor": 2,
+  "offscreen": 1,
+  "ok": 3
+ },
+ "U-06": {
+  "diff": 7,
+  "minor": 3,
+  "missing": 2,
+  "na": 15,
+  "ok": 10
+ },
+ "U-09": {
+  "diff": 11,
+  "extra": 9,
+  "minor": 1,
+  "missing": 2
+ },
+ "B-01": {
+  "diff": 8,
+  "minor": 1,
+  "missing": 3,
+  "na": 15,
+  "offscreen": 1
+ },
+ "B-08p1": {
+  "diff": 15,
+  "extra": 3,
+  "minor": 7,
+  "missing": 3,
+  "na": 2,
+  "offscreen": 10,
+  "ok": 1
+ },
+ "B-09": {
+  "diff": 5,
+  "minor": 1
+ }
+}

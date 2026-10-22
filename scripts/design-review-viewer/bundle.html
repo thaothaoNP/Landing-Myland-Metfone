@@ -1,0 +1,1244 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Design Review Viewer — Anh Tester</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%237c3aed'/%3E%3Crect x='6' y='9' width='11' height='15' rx='2' fill='none' stroke='white' stroke-width='2.4'/%3E%3Crect x='15' y='7' width='11' height='15' rx='2' fill='none' stroke='white' stroke-width='2.4'/%3E%3C/svg%3E">
+<style>
+:root{
+  --brand:#4DBD44; --brand-600:#3EA036; --brand-700:#2F7A29; --brand-50:#F0F9EF; --brand-100:#DCF0DA;
+  --crit:#dc2626; --major:#ea580c; --minor:#d97706; --trivial:#64748b; --design:#7c3aed;
+  --bg:#f6f7f9; --card:#fff; --line:#e4e7ec; --text:#111827; --muted:#6b7280;
+}
+*{box-sizing:border-box}
+body{margin:0;font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:var(--bg);color:var(--text)}
+button{font:inherit;cursor:pointer}
+h1,h2,h3{margin:0}
+code{background:#f1f5f9;padding:1px 5px;border-radius:4px;font-size:.92em;font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
+a{color:var(--brand-700)}
+
+/* layout */
+header{background:#fff;border-bottom:1px solid var(--line);padding:12px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;position:sticky;top:0;z-index:20}
+.logo{width:30px;height:30px;border-radius:7px;background:var(--design);display:grid;place-items:center;flex:none}
+.logo svg{width:20px;height:20px}
+.title{font-size:16px;font-weight:700}
+.subtitle{font-size:12px;color:var(--muted)}
+.spacer{flex:1}
+.btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 13px;font-weight:600;color:var(--text)}
+.btn:hover{background:#f9fafb}
+.btn-primary{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn-primary:hover{background:var(--brand-600)}
+.btn-sm{padding:4px 9px;font-size:12px;font-weight:500}
+
+main{display:flex;align-items:flex-start;gap:16px;padding:16px 20px;max-width:1800px;margin:0 auto}
+aside{width:250px;flex:none;position:sticky;top:72px;min-width:0}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px;min-width:0;overflow:hidden}
+.panel + .panel{margin-top:12px}
+.panel h3{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:8px}
+section.content{flex:1;min-width:0}
+.note{font-size:11.5px;color:var(--muted);line-height:1.5;margin-top:6px}
+
+/* drop zone */
+#drop{border:2px dashed var(--brand);border-radius:12px;background:var(--brand-50);padding:44px 20px;text-align:center;color:var(--brand-700);cursor:pointer}
+#drop.over{background:var(--brand-100)}
+#drop b{display:block;font-size:16px;margin-bottom:6px}
+#drop small{color:var(--muted);display:block;margin-top:10px;line-height:1.7}
+
+/* file list */
+.file{display:flex;align-items:center;gap:6px;padding:6px 7px;border-radius:7px;cursor:default;font-size:13px}
+.file:hover{background:#f3f4f6}
+.file .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file .rm{border:0;background:none;color:var(--muted);padding:0 3px;font-size:14px;line-height:1}
+.file .rm:hover{color:var(--crit)}
+.tag{font-size:10px;padding:1px 5px;border-radius:4px;background:#f5f3ff;color:#6d28d9;flex:none}
+.tag.idx{background:#f1f5f9;color:#475569}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:10px;margin-bottom:12px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:11px 13px}
+.stat .n{font-size:23px;font-weight:700;line-height:1.2}
+.stat .n small{font-size:13px;color:var(--muted);font-weight:600}
+.stat .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.stat.open .n{color:var(--crit)} .stat.closed .n{color:var(--brand-700)}
+.stat.pending .n{color:var(--minor)} .stat.crit .n{color:var(--crit)} .stat.design .n{color:var(--design)}
+
+/* alerts */
+.alert{border-radius:10px;padding:11px 14px;margin-bottom:10px;font-size:13px;border:1px solid}
+.alert > b{display:block;margin-bottom:2px}
+.alert.danger{background:#fef2f2;border-color:#fecaca;color:#991b1b}
+.alert.warn{background:#fffbeb;border-color:#fde68a;color:#92400e}
+.alert.info{background:#eff6ff;border-color:#bfdbfe;color:#1e40af}
+.alert ul{margin:5px 0 0;padding-left:19px}
+.alert .lnk{border:0;background:none;padding:0;color:inherit;font-weight:700;text-decoration:underline dotted;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px}
+
+/* catalog */
+.catalog{background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:12px}
+.catalog > summary{padding:10px 14px;font-weight:700;cursor:pointer;font-size:13.5px}
+.catalog .cbody{padding:0 14px 12px}
+.catalog .cbody h4{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:12px 0 6px}
+
+/* tabs */
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:12px}
+.tab{border:0;background:none;padding:9px 16px;font-weight:700;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab.on{color:var(--brand-700);border-bottom-color:var(--brand)}
+.tab .cnt{font-size:11px;background:#f1f5f9;color:#475569;border-radius:99px;padding:1px 7px;margin-left:5px}
+
+/* toolbar */
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+input[type=search],select{border:1px solid var(--line);border-radius:8px;padding:7px 11px;font:inherit;background:#fff;color:var(--text)}
+input[type=search]{flex:1;min-width:200px}
+input[type=search]:focus,select:focus{outline:2px solid var(--brand-100);border-color:var(--brand)}
+.chip{border:1px solid var(--line);background:#fff;border-radius:99px;padding:5px 12px;font-size:12.5px;font-weight:600;color:var(--muted)}
+.chip.on{background:var(--brand-50);border-color:var(--brand);color:var(--brand-700)}
+.chiprow{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-right:10px}
+.chiprow .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-right:2px}
+label.chk{font-size:12.5px;color:var(--muted);display:inline-flex;gap:6px;align-items:center}
+
+/* table */
+.tablewrap{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:9px 11px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:#fafbfc;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);white-space:nowrap}
+#tbl th{cursor:pointer;position:sticky;top:0}
+#tbl th:hover{color:var(--text)}
+#tbl th.sorted::after{content:' ▲';font-size:9px}
+#tbl th.sorted.desc::after{content:' ▼'}
+#rows tr{cursor:pointer}
+#rows tr:hover{background:#fafbfc}
+td.id{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;white-space:nowrap}
+.st{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11.5px;font-weight:700;white-space:nowrap}
+.st.OPEN{background:#fee2e2;color:#991b1b} .st.FIXED{background:#dcfce7;color:#166534}
+.st.ACCEPTED{background:#f1f5f9;color:#475569} .st.OBSOLETE{background:#ede9fe;color:#5b21b6}
+.sv{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11.5px;font-weight:700;white-space:nowrap}
+.sv.High{background:#fee2e2;color:#991b1b} .sv.Medium{background:#ffedd5;color:#9a3412}
+.sv.Low{background:#fef3c7;color:#92400e}
+.ow{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11.5px;font-weight:700;white-space:nowrap;background:#eef2ff;color:#4338ca}
+.ow.DESIGN{background:#f5f3ff;color:#6d28d9} .ow.PO{background:#fef3c7;color:#92400e} .ow.DEV{background:#e0f2fe;color:#075985}
+.ty{display:inline-block;padding:1px 6px;border-radius:5px;font-size:11px;font-weight:700;background:#f1f5f9;color:#334155;font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
+.pf{font-size:12px;color:var(--muted)}
+#rows .pf{white-space:nowrap}
+.empty{padding:34px;text-align:center;color:var(--muted)}
+
+/* frames grid */
+.grp{margin-bottom:18px}
+.grp-h{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.grp-h b{font-size:14px}
+.badge{font-size:10.5px;padding:1px 7px;border-radius:99px;background:var(--brand-50);color:var(--brand-700);font-weight:700}
+.badge.old{background:#f1f5f9;color:#475569}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.fcard{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;cursor:pointer;display:flex;flex-direction:column;text-align:left;padding:0;color:inherit}
+.fcard:hover{border-color:var(--brand);box-shadow:0 4px 14px rgba(0,0,0,.06)}
+.fcard .th{height:210px;background:#f3f4f6;display:grid;place-items:center;overflow:hidden;border-bottom:1px solid var(--line)}
+.fcard .th img{width:100%;height:100%;object-fit:contain}
+.fcard .th .ph{color:var(--muted);font-size:12px;padding:10px;text-align:center}
+.fcard .fb{padding:9px 11px;display:flex;flex-direction:column;gap:5px}
+.fcard .fc{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;color:var(--muted)}
+.fcard .fn{font-weight:700;font-size:13px}
+.res{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11.5px;font-weight:700}
+.res.DIFF{background:#ffedd5;color:#9a3412} .res.OK{background:#dcfce7;color:#166534} .res.NC{background:#f1f5f9;color:#475569} .res.OTHER{background:#eef2ff;color:#4338ca}
+.dchips{display:flex;flex-wrap:wrap;gap:4px}
+.dchip{border:1px solid var(--line);background:#fff;border-radius:6px;padding:1px 6px;font-size:11px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;color:var(--text)}
+.dchip.OPEN{border-color:#fecaca;color:#991b1b} .dchip.FIXED{border-color:#bbf7d0;color:#166534}
+.dchip.ACCEPTED{color:#475569} .dchip.OBSOLETE{border-color:#ddd6fe;color:#5b21b6}
+button.dchip:hover{background:var(--brand-50)}
+
+/* reports */
+.rcard{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:14px}
+.rcard h3{font-size:15px;margin-bottom:2px}
+.rcard .meta{margin-top:10px}
+.rcard .meta td:first-child{width:190px;color:var(--muted);font-weight:600}
+.rcard .meta td{padding:6px 9px;font-size:12.5px}
+.rcard .cnts{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.rcard details{margin-top:10px;border:1px solid var(--line);border-radius:8px}
+.rcard details > summary{padding:8px 12px;cursor:pointer;font-weight:600;font-size:13px}
+.rcard details > .mdc{padding:0 12px 10px}
+
+/* markdown content */
+.md p{margin:6px 0}
+.md ul{margin:6px 0;padding-left:20px}
+.md blockquote{margin:8px 0;padding:6px 12px;border-left:3px solid var(--line);color:#374151;background:#fafbfc;border-radius:0 6px 6px 0}
+.md .mdt{overflow-x:auto;margin:8px 0;border:1px solid var(--line);border-radius:8px}
+.md .mdt table{font-size:12px}
+.md .mdt th,.md .mdt td{padding:6px 8px}
+.md .mdt th{white-space:nowrap}
+.md h4.mdh{font-size:13px;margin:12px 0 4px}
+details.mdd{margin:10px 0;border:1px solid var(--line);border-radius:8px;background:#fff}
+details.mdd > summary{padding:8px 12px;cursor:pointer;font-weight:600;font-size:13px}
+details.mdd > .mdd-body{padding:0 12px 10px}
+.mdlink{color:var(--brand-700);border-bottom:1px dotted var(--brand-700)}
+
+/* detail */
+#detail{position:fixed;right:0;top:0;bottom:0;width:min(640px,94vw);background:#fff;border-left:1px solid var(--line);box-shadow:-8px 0 26px rgba(0,0,0,.09);padding:18px 20px;overflow:auto;z-index:40;display:none}
+#detail.open{display:block}
+#detail.wide{width:min(1180px,96vw)}
+#detail h2{font-size:15px;margin-bottom:3px;padding-right:30px}
+#detail .close{position:absolute;right:14px;top:14px;border:0;background:none;font-size:21px;color:var(--muted);line-height:1}
+#detail h4.sec{font-size:12.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:18px 0 7px}
+.kv{margin-top:14px}
+.kv > div{display:grid;grid-template-columns:150px 1fr;gap:10px;padding:7px 0;border-bottom:1px solid #f1f2f4;font-size:13px}
+.kv .k{color:var(--muted);font-weight:600;overflow-wrap:anywhere}
+.kv .v{word-break:break-word;overflow-wrap:anywhere;min-width:0}
+.histwrap table{font-size:12px}
+.histwrap th,.histwrap td{padding:7px 8px}
+.hint{font-size:12px;color:var(--muted);background:#fafbfc;border:1px dashed var(--line);border-radius:8px;padding:8px 10px;margin-top:8px}
+
+/* evidence: chip + thumbnail */
+.ev-chip{display:inline-flex;align-items:center;gap:5px;max-width:100%;margin:2px 5px 2px 0;padding:3px 8px;
+  border:1px solid var(--line);border-radius:7px;background:#fff;font-size:12px;cursor:pointer;
+  overflow-wrap:anywhere;text-align:left;line-height:1.35;font-family:inherit;color:var(--brand-700)}
+.ev-chip:hover{background:var(--brand-50);border-color:var(--brand)}
+.ev-chip.miss{cursor:not-allowed;color:var(--muted);border-style:dashed}
+.ev-chip.miss:hover{background:#fff;border-color:var(--line)}
+.thumbs{display:flex;flex-wrap:wrap;gap:10px}
+.thumb{border:1px solid var(--line);border-radius:8px;background:#f3f4f6;padding:0;overflow:hidden;width:180px;display:flex;flex-direction:column;cursor:zoom-in;text-align:left}
+.thumb img{width:100%;height:150px;object-fit:contain;background:#f3f4f6}
+.thumb span{font-size:11px;padding:4px 7px;background:#fff;color:var(--muted);overflow-wrap:anywhere;border-top:1px solid var(--line)}
+.thumb:hover{border-color:var(--brand)}
+.thumb.miss{cursor:not-allowed}
+.thumb.miss .ph{height:150px;display:grid;place-items:center;color:var(--muted);font-size:11.5px;padding:8px;text-align:center}
+.thumb.big{width:100%;max-width:900px}
+.thumb.big img{height:auto;max-height:560px}
+.thumb.big.miss .ph{height:120px}
+
+#lightbox{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;
+  background:rgba(16,19,24,.84);padding:28px}
+#lightbox.open{display:flex}
+#lightbox figure{max-width:min(1400px,94vw);max-height:92vh;display:flex;flex-direction:column;gap:10px;margin:0}
+#lightbox img{max-width:100%;max-height:84vh;object-fit:contain;border-radius:8px;background:#fff;
+  box-shadow:0 18px 50px rgba(0,0,0,.4)}
+#lightbox figcaption{color:#e8eaed;font-size:12.5px;text-align:center;overflow-wrap:anywhere}
+#lbClose{position:absolute;right:20px;top:16px;border:0;background:rgba(255,255,255,.14);color:#fff;
+  width:34px;height:34px;border-radius:50%;font-size:21px;line-height:1;cursor:pointer}
+#lbClose:hover,.lbNav:hover{background:rgba(255,255,255,.26)}
+.lbNav{position:absolute;top:50%;transform:translateY(-50%);border:0;background:rgba(255,255,255,.14);color:#fff;
+  width:42px;height:42px;border-radius:50%;font-size:22px;line-height:1}
+#lbPrev{left:16px} #lbNext{right:16px}
+footer{text-align:center;color:var(--muted);font-size:12px;padding:18px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><svg viewBox="0 0 32 32"><rect x="5" y="9" width="12" height="16" rx="2" fill="none" stroke="#fff" stroke-width="2.4"/><rect x="15" y="6" width="12" height="16" rx="2" fill="none" stroke="#fff" stroke-width="2.4"/></svg></div>
+  <div>
+    <div class="title">Design Review Viewer</div>
+    <div class="subtitle">So thiết kế Figma ↔ UI thật — <code>design_compare_report.md</code> · danh mục <code>docs/design-reviews/**/README.md</code></div>
+  </div>
+  <div class="spacer"></div>
+  <button class="btn" id="btnCsv">↓ CSV</button>
+  <button class="btn" id="btnXlsx">↓ Excel</button>
+  <button class="btn" id="btnAdd">+ Import file .md</button>
+  <button class="btn btn-primary" id="btnAddFolder">+ Import thư mục</button>
+  <button class="btn" id="btnReset" style="display:none">Xoá tất cả</button>
+  <input type="file" id="file" accept=".md,.markdown,.png,.jpg,.jpeg,.gif,.webp,.svg" multiple hidden>
+  <input type="file" id="folder" webkitdirectory mozdirectory directory multiple hidden>
+</header>
+
+<main>
+  <aside>
+    <div class="panel">
+      <h3>Báo cáo đã nạp</h3>
+      <div id="files"></div>
+    </div>
+    <div class="panel" id="imgPanel">
+      <h3>Ảnh evidence</h3>
+      <div id="imgInfo" style="font-size:12.5px"></div>
+      <div class="note">Ảnh <b>không</b> được lưu lại — tải lại trang thì phải nạp lại thư mục (hoặc thư mục <code>evidence/</code>) để xem ảnh. Phần chữ của báo cáo vẫn còn.</div>
+    </div>
+  </aside>
+
+  <section class="content">
+    <div id="drop">
+      <b>Kéo thả thư mục <code>docs/design-reviews/</code> vào đây</b>
+      Hoặc bấm <strong>+ Import thư mục</strong> / <strong>+ Import file .md</strong> ở góc trên — 2 nút đó vẫn còn sau khi đã nạp dữ liệu, bấm thêm được bất cứ lúc nào
+      <small>
+        Nhận <code>docs/design-reviews/[_&lt;hệ-thống&gt;/]&lt;module&gt;/&lt;nền-tảng&gt;/run_&lt;YYYYMMDD_HHMMSS&gt;/design_compare_report.md</code> + ảnh trong <code>evidence/</code> cùng lần chạy,<br>
+        và danh mục <code>README.md</code> của từng hệ thống (bảng Module · Nền tảng · Mã kế tiếp · DIFF mở…).<br>
+        Kéo cả thư mục thì viewer tự đọc module / nền tảng / lần chạy từ đường dẫn. Nạp lẻ 1 file <code>.md</code> (không có đường dẫn) thì đọc từ tiêu đề <code># So thiết kế Figma ↔ …</code>.<br>
+        Nhiều lần chạy của cùng module × nền tảng: lần chạy mới nhất quyết định trạng thái hiện tại của mỗi DIFF; các lần cũ thành <b>lịch sử</b> của DIFF đó.<br>
+        <b>Kéo thả</b> chọn được nhiều thư mục cùng lúc; <b>bấm + Import thư mục</b> thì hộp thoại hệ điều hành chỉ cho chọn <b>1 thư mục mỗi lần</b> — dữ liệu cộng dồn chứ không ghi đè.<br>
+        Ảnh không lưu lại sau khi tải lại trang (chỉ phần chữ được lưu trong <code>localStorage</code>). Toàn bộ xử lý chạy trong trình duyệt — không gửi dữ liệu đi đâu.
+      </small>
+    </div>
+
+    <div id="app" style="display:none">
+      <div id="catalogs"></div>
+      <div id="alerts"></div>
+      <div class="stats" id="stats"></div>
+
+      <div class="toolbar">
+        <input type="search" id="q" placeholder="Tìm theo mã DIFF, mô tả, số đo, mã/tên khung, loại, người xử lý…">
+        <select id="fModule"><option value="">Mọi module</option></select>
+        <select id="fPlatform"><option value="">Mọi nền tảng</option></select>
+      </div>
+
+      <div class="tabs" id="tabs">
+        <button class="tab on" data-tab="diff">DIFF<span class="cnt" id="cntDiff">0</span></button>
+        <button class="tab" data-tab="frame">Khung<span class="cnt" id="cntFrame">0</span></button>
+        <button class="tab" data-tab="report">Báo cáo<span class="cnt" id="cntReport">0</span></button>
+      </div>
+
+      <div id="paneDiff">
+        <div class="toolbar">
+          <span class="chiprow"><span class="lbl">Trạng thái</span><span id="chipsSt"></span></span>
+          <span class="chiprow"><span class="lbl">Mức độ</span><span id="chipsSv"></span></span>
+        </div>
+        <div class="toolbar">
+          <span class="chiprow"><span class="lbl">Loại</span><span id="chipsTy"></span></span>
+          <span class="chiprow"><span class="lbl">Ai xử lý</span><span id="chipsOw"></span></span>
+        </div>
+        <div class="tablewrap">
+          <table id="tbl">
+            <thead><tr>
+              <th data-s="code">Mã</th><th data-s="statusKey">Trạng thái</th><th data-s="module">Module</th>
+              <th data-s="platform">Nền tảng</th><th data-s="frames">Khung</th><th data-s="type">Loại</th>
+              <th data-s="severity">Mức độ</th><th data-s="ownerKey">Ai xử lý</th><th data-s="desc">Mô tả</th>
+            </tr></thead>
+            <tbody id="rows"></tbody>
+          </table>
+          <div class="empty" id="noRows" style="display:none">Không có DIFF nào khớp bộ lọc.</div>
+        </div>
+      </div>
+
+      <div id="paneFrame" style="display:none">
+        <div class="toolbar"><label class="chk"><input type="checkbox" id="showOldRuns"> Hiện cả các lần chạy cũ (mặc định chỉ lần chạy mới nhất của mỗi module × nền tảng)</label></div>
+        <div id="frameGroups"></div>
+      </div>
+
+      <div id="paneReport" style="display:none">
+        <div id="reportList"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="detail" data-gal="1">
+  <button class="close" id="btnClose" title="Đóng">×</button>
+  <h2 id="dTitle"></h2>
+  <div class="subtitle" id="dSub"></div>
+  <div id="dBody"></div>
+</div>
+
+<div id="lightbox">
+  <button id="lbClose" title="Đóng (Esc)">×</button>
+  <button class="lbNav" id="lbPrev" title="Ảnh trước (←)">‹</button>
+  <button class="lbNav" id="lbNext" title="Ảnh sau (→)">›</button>
+  <figure>
+    <img id="lbImg" alt="">
+    <figcaption id="lbCap"></figcaption>
+  </figure>
+</div>
+
+<footer>Anh Tester · claude-testing-skills — phần chữ của báo cáo lưu trong localStorage của trình duyệt này; ảnh phải nạp lại mỗi lần mở</footer>
+
+<script>
+/* ============================ PARSER (generic) ============================ */
+const clean = s => String(s||'').replace(/\\\|/g,'|').replace(/<br\s*\/?>/gi,'\n').trim();
+const PLACEHOLDER = /^(?:[—–\-]+|n\/a|na)$/i;
+function stripMd(s){
+  const v = clean(s).replace(/!?\[([^\]]*)\]\(([^)]*)\)/g,(m,a,b)=>a||b).replace(/(?<!\\)[`*]/g,'').replace(/\\([*_`])/g,'$1').trim();
+  return PLACEHOLDER.test(v) ? '' : v;
+}
+// Giữ nguyên markdown trong ô (không đổi <br>) — để render lại bằng inl()
+const splitRowRaw = r => r.trim().replace(/^\|/,'').replace(/\|$/,'').split(/(?<!\\)\|/).map(c=>c.trim());
+
+function parseTables(lines){
+  const out=[]; let i=0, heading='';
+  while(i<lines.length){
+    const L=lines[i];
+    const h=L.match(/^(#{2,4})\s+(.*)$/);
+    if(h){ heading=h[2].trim(); i++; continue; }
+    if(/^\s*\|/.test(L)){
+      const blk=[]; while(i<lines.length && /^\s*\|/.test(lines[i])) blk.push(lines[i++]);
+      if(blk.length>=2 && /^[\s|:-]+$/.test(blk[1])){
+        const header=splitRowRaw(blk[0]).map(stripMd);
+        const rows=blk.slice(2).filter(r=>!/^[\s|:-]+$/.test(r)).map(splitRowRaw).filter(r=>r.some(c=>c!==''));
+        out.push({heading,header,rows});
+      }
+      continue;
+    }
+    i++;
+  }
+  return out;
+}
+const colIdx=(header,re)=>header.findIndex(h=>re.test(h));
+function splitSections(text){
+  const lines=text.split(/\r?\n/);
+  const sec=[]; let cur={title:'_pre',lines:[]}; sec.push(cur);
+  for(const line of lines){
+    const m=line.match(/^##\s+(.*)$/);
+    if(m){ cur={title:m[1].trim(),lines:[]}; sec.push(cur); continue; }
+    cur.lines.push(line);
+  }
+  return sec;
+}
+const findSec=(secs,re)=>secs.find(s=>re.test(s.title));
+
+/* ============================ PARSER (đặc thù design-compare) ============================ */
+const ALL_ST=['OPEN','ACCEPTED','FIXED','OBSOLETE'];
+const ST_LABEL={OPEN:'🔴 Mở',FIXED:'✅ Đã khắc phục',ACCEPTED:'⚪ Chấp nhận',OBSOLETE:'🗑️ Không còn áp dụng'};
+const ALL_SV=['High','Medium','Low'];
+const BASE_TY=['CONTENT','MISSING','EXTRA','LAYOUT','STYLE','ASSET','STATE'];
+const ALL_OW=['DEV','DESIGN','PO'];
+const OW_LABEL={DEV:'Dev',DESIGN:'Design',PO:'Cần PO quyết',OTHER:'Khác'};
+const PF_LABEL={web:'Web',mobile:'Mobile',api:'API'};
+
+function normDiffStatus(raw){
+  const t=stripMd(raw);
+  if(!t) return 'OPEN';                                 // báo cáo cũ chưa có cột Trạng thái
+  if(/khắc phục|fixed/i.test(t)) return 'FIXED';
+  if(/chấp nhận|accept/i.test(t)) return 'ACCEPTED';
+  if(/không còn áp dụng|obsolete/i.test(t)) return 'OBSOLETE';
+  return 'OPEN';
+}
+function normSev(raw){ const t=stripMd(raw);
+  return /high|cao/i.test(t)?'High':/medium|trung/i.test(t)?'Medium':/low|thấp/i.test(t)?'Low':t; }
+function normOwner(raw){ const t=stripMd(raw);
+  return /\bPO\b/.test(t)?'PO':/design/i.test(t)?'DESIGN':/dev/i.test(t)?'DEV':(t?'OTHER':''); }
+function normType(raw){ const t=stripMd(raw);
+  const m=t.match(/\b(CONTENT|MISSING|EXTRA|LAYOUT|STYLE|ASSET|STATE)\b/i);
+  return m?m[1].toUpperCase():t.toUpperCase(); }
+/* Cột Khung của DIFF: "A-01 · A-03" · dải "B-01 → B-04" · dẫn chiếu module khác "(+ B-09)" không tính là khung của báo cáo này */
+function parseFrameCodes(txt){
+  const own=String(txt||'').replace(/\(\s*\+[^)]*\)/g,' ');
+  const out=[];
+  own.replace(/([A-Za-z]+)-(\d+)([a-z]?)\s*(?:→|->|–|—)\s*\1-(\d+)/g,(m,p,a,_,b)=>{
+    for(let i=+a;i<=+b;i++) out.push(p+'-'+String(i).padStart(a.length,'0')); return ' ';
+  });
+  (own.replace(/([A-Za-z]+)-(\d+)([a-z]?)\s*(?:→|->|–|—)\s*\1-(\d+)/g,' ').match(/[A-Za-z]+-\d+[a-z]?/g)||[]).forEach(c=>out.push(c));
+  return [...new Set(out)];
+}
+function frameResultKind(res){
+  const t=String(res||'').trim();
+  if(/^❔/.test(t)) return 'NC';
+  if(/⚠️|❌|DIFF/i.test(t)) return 'DIFF';
+  if(/✅|khớp/i.test(t)) return 'OK';
+  return 'OTHER';
+}
+const normPath=p=>String(p||'').replace(/\\/g,'/').replace(/^\/+/,'');
+const baseName=p=>String(p).split(/[\\/]/).pop().trim();
+
+// docs/design-reviews/[_<ns>/]<module>/<platform>/run_<YYYYMMDD_HHMMSS>/design_compare_report.md
+function pathInfo(p){
+  const segs=normPath(p).split('/').filter(Boolean);
+  const ri=segs.findIndex(s=>/^run_\d{8}_\d{4,6}/i.test(s));
+  if(ri<2) return null;
+  const nsSeg=segs[ri-3]||'';
+  return {runId:segs[ri], platform:segs[ri-1].toLowerCase(), moduleDir:segs[ri-2], ns:nsSeg.startsWith('_')?nsSeg:''};
+}
+const IMG_LINK_RE=/!?\[[^\]]*\]\(([^)\s]+)\)/g;
+const IMG_RE=/\.(png|jpe?g|gif|webp|svg)$/i;
+const links=raw=>[...String(raw||'').matchAll(IMG_LINK_RE)].map(m=>m[1]).filter(u=>IMG_RE.test(u));
+
+const isReport = t => /^#\s*So thiết kế Figma\s*↔/m.test(t) || (/^##\s*\d*\.?\s*Danh sách DIFF/mi.test(t) && /^##\s*\d*\.?\s*Bản đồ màn hình/mi.test(t));
+const isCatalog = t => !isReport(t) && (/^#\s*Danh mục So thiết kế/mi.test(t) || /\|\s*Mã kế tiếp\s*\|/i.test(t) && /DIFF/.test(t));
+
+function parseReport(text, path, name){
+  const h1=(text.match(/^#\s+(.*)$/m)||[,''])[1].trim();
+  const hm=h1.match(/So thiết kế Figma\s*↔\s*(.+?)\s*—\s*(.+?)\s*(?:\(`([^`]+)`\))?\s*$/);
+  const secs=splitSections(text);
+  const pre=findSec(secs,/^_pre$/);
+  const meta=[];
+  for(const t of parseTables(pre.lines)) if(t.header.length===2 && /mục/i.test(t.header[0])) for(const r of t.rows) if(r[0]) meta.push([stripMd(r[0]), r[1]||'']);
+  const metaGet=re=>{ const x=meta.find(([k])=>re.test(k)); return x?x[1]:''; };
+
+  const pi=pathInfo(path);
+  const platformLabel=hm?hm[1].trim():'';
+  let platform=pi?pi.platform:(/android|ios|mobile|app/i.test(platformLabel)?'mobile':/api/i.test(platformLabel)?'api':/web/i.test(platformLabel)?'web':(stripMd(metaGet(/^mode$/i)).toLowerCase()||'?'));
+  const prefix=hm&&hm[3]?hm[3].trim():'';
+  const moduleDir=pi?pi.moduleDir:(prefix||'?').toLowerCase();
+  let runId=pi?pi.runId:'', runApprox=false;
+  if(!runId){
+    const d=stripMd(metaGet(/ngày chạy/i)).match(/(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
+    const p=n=>String(n||0).padStart(2,'0');
+    runId=d?`run_${d[3]}${p(d[2])}${p(d[1])}_${p(d[4])}${p(d[5])}00`:'run_?';
+    runApprox=true;
+  }
+
+  // 3. Danh sách DIFF
+  const diffs=[];
+  const sDiff=findSec(secs,/danh sách diff/i);
+  const tDiff=sDiff && parseTables(sDiff.lines).find(t=>colIdx(t.header,/^mã$/i)>=0);
+  if(tDiff){
+    const h=tDiff.header, g=re=>colIdx(h,re);
+    const iC=g(/^mã$/i), iSt=g(/trạng thái/i), iF=g(/^khung/i), iT=g(/^loại/i), iSv=g(/mức độ/i), iO=g(/ai xử lý/i),
+          iD=g(/mô tả/i), iA=g(/thực tế/i), iDs=g(/thiết kế/i), iE=g(/evidence/i);
+    const cell=(r,i)=>i>=0?(r[i]||''):'';
+    for(const r of tDiff.rows){
+      const code=stripMd(cell(r,iC)); if(!code) continue;
+      const framesTxt=stripMd(cell(r,iF));
+      diffs.push({code, statusRaw:stripMd(cell(r,iSt))||'🔴 Mở', statusKey:normDiffStatus(cell(r,iSt)),
+        frames:framesTxt, framesArr:parseFrameCodes(framesTxt),
+        type:normType(cell(r,iT)), severity:normSev(cell(r,iSv)), ownerKey:normOwner(cell(r,iO)), ownerRaw:stripMd(cell(r,iO)),
+        desc:stripMd(cell(r,iD)), descRaw:cell(r,iD), actualRaw:cell(r,iA), designRaw:cell(r,iDs), evRaw:cell(r,iE),
+        evLinks:links(cell(r,iE))});
+    }
+  }
+  const codePrefix=diffs.length?diffs[0].code.replace(/\d+$/,''):'';
+  const padW=diffs.length?((diffs[0].code.match(/(\d+)$/)||[,'00'])[1].length):2;
+
+  // 2. Bản đồ màn hình
+  const frames=[];
+  const sMap=findSec(secs,/bản đồ màn hình/i);
+  const tMap=sMap && parseTables(sMap.lines).find(t=>colIdx(t.header,/mã khung/i)>=0);
+  if(tMap){
+    const h=tMap.header, g=re=>colIdx(h,re);
+    const iC=g(/mã khung/i), iN=g(/khung figma/i), iDr=g(/trạng thái vẽ/i), iH=g(/cách tới/i), iR=g(/kết quả/i), iDf=g(/^diff/i);
+    for(const r of tMap.rows){
+      const code=stripMd(r[iC]); if(!code) continue;
+      const rawName=iN>=0?r[iN]||'':'';
+      const node=(rawName.match(/\(`([^`]+)`\)/)||[,''])[1];
+      const refs=stripMd(iDf>=0?r[iDf]:'').split(/[\s·,;]+/).filter(x=>x && !/^[—–-]+$/.test(x))
+        .map(x=>/^\d+$/.test(x)&&codePrefix?codePrefix+x.padStart(padW,'0'):x);
+      const result=iR>=0?r[iR]||'':'';
+      frames.push({code, name:stripMd(rawName.replace(/\(`[^`]+`\)/,'')), node, drawRaw:iDr>=0?r[iDr]:'', howRaw:iH>=0?r[iH]:'',
+        resultRaw:result, result:stripMd(result), kind:frameResultKind(stripMd(result)), diffs:refs});
+    }
+  }
+  // gộp: DIFF nào khai khung X mà bản đồ chưa ghi thì vẫn gắn vào khung X
+  for(const d of diffs) for(const fc of d.framesArr){
+    let f=frames.find(x=>x.code===fc);
+    if(!f){ f={code:fc,name:'',node:'',drawRaw:'',howRaw:'',resultRaw:'',result:'',kind:'OTHER',diffs:[]}; frames.push(f); }
+    if(!f.diffs.includes(d.code)) f.diffs.push(d.code);
+  }
+
+  // 4. Chi tiết từng khung
+  const details={}; let detailIntro='';
+  const sDet=findSec(secs,/chi tiết từng khung/i);
+  if(sDet){
+    let cur=null; const intro=[];
+    for(const line of sDet.lines){
+      const m=line.match(/^###\s+(.*)$/);
+      if(m){
+        const head=m[1].trim(); const cm=head.match(/^([A-Za-z]+-\d+[a-z]?)\s*[·:—-]?\s*(.*)$/);
+        cur={heading:head, code:cm?cm[1]:head, title:cm?cm[2]:'', lines:[]};
+        details[cur.code]=cur; continue;
+      }
+      (cur?cur.lines:intro).push(line);
+    }
+    detailIntro=intro.join('\n').trim();
+    for(const k in details){
+      details[k].body=details[k].lines.join('\n'); delete details[k].lines;
+      if(!frames.find(f=>f.code===k)) frames.push({code:k,name:stripMd(details[k].title),node:'',drawRaw:'',howRaw:'',resultRaw:'',result:'',kind:'OTHER',diffs:[]});
+    }
+  }
+
+  // 5. Khung / trạng thái không so được
+  const notCompared=[];
+  const sNc=findSec(secs,/không so được/i);
+  const tNc=sNc && parseTables(sNc.lines)[0];
+  if(tNc){
+    const h=tNc.header, iF=colIdx(h,/khung/i), iR=colIdx(h,/lý do/i), iN=colIdx(h,/cần gì/i);
+    for(const r of tNc.rows) notCompared.push({frameRaw:r[iF>=0?iF:0]||'', frame:stripMd(r[iF>=0?iF:0]), reasonRaw:iR>=0?r[iR]:'', needRaw:iN>=0?r[iN]:''});
+  }
+  const secText=re=>{ const s=findSec(secs,re); return s?{title:s.title,text:s.lines.join('\n').trim()}:null; };
+  frames.sort((a,b)=>a.code.localeCompare(b.code,'vi',{numeric:true}));
+
+  return {kind:'report', h1, path, name, ns:pi?pi.ns:'', moduleDir, module:prefix||moduleDir.toUpperCase(),
+    moduleName:hm?stripMd(hm[2]):'', platform, platformLabel, runId, runApprox, meta, diffs, frames, details, detailIntro,
+    notCompared, secSummary:secText(/tóm tắt/i), secNotes:secText(/ghi chú tham khảo/i), secNext:secText(/việc tiếp theo/i),
+    secNc:secText(/không so được/i)};
+}
+
+function parseCatalog(text, path, name){
+  const h1=(text.match(/^#\s+(.*)$/m)||[,''])[1].trim();
+  const tables=parseTables(text.split(/\r?\n/));
+  const main=tables.find(t=>colIdx(t.header,/mã kế tiếp/i)>=0) || tables.find(t=>colIdx(t.header,/^module$/i)>=0);
+  const log=tables.find(t=>/nhật ký/i.test(t.heading));
+  const segs=normPath(path).split('/').filter(Boolean);
+  const ns=segs.length>=2 && segs[segs.length-2].startsWith('_') ? segs[segs.length-2] : '';
+  return {kind:'catalog', h1, path, name, ns, main, log};
+}
+
+/* ============================ STATE ============================ */
+let SOURCES=[];                          // [{key, path, name, text}] — CHỈ lưu chữ; ảnh không lưu được
+const offStatus=new Set(), offSev=new Set(), offType=new Set(), offOwner=new Set();
+const $=s=>document.querySelector(s);
+let sortKey='code', sortDir=1, curTab='diff';
+const LS_KEY='designReviewViewer';
+
+function save(){
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(SOURCES)); }
+  catch(e){ toast('Không lưu được vào localStorage (đầy?) — dữ liệu vẫn xem được trong phiên này'); }
+}
+function load(){ try{ const r=localStorage.getItem(LS_KEY); if(r) SOURCES=JSON.parse(r)||[]; }catch(e){ SOURCES=[]; } }
+
+/* ---- Ảnh evidence: khớp theo TÊN FILE (như bugs-viewer); trùng tên giữa nhiều lần chạy thì ưu tiên ảnh nằm
+   trong đúng thư mục run_<…> của báo cáo đang xem ---- */
+const IMAGES=new Map();                  // basename(lower) -> [{path,url}]
+const FILE_PATH=new WeakMap();           // File -> đường dẫn lúc kéo thả (entry.fullPath)
+const filePath=f=>normPath(FILE_PATH.get(f)||f.webkitRelativePath||f.name);
+function addImages(files){
+  let n=0;
+  for(const f of files){
+    if(!IMG_RE.test(f.name)) continue;
+    const k=f.name.toLowerCase(), p=filePath(f);
+    const arr=IMAGES.get(k)||[];
+    const old=arr.findIndex(x=>x.path===p);
+    if(old>=0){ URL.revokeObjectURL(arr[old].url); arr.splice(old,1); }
+    arr.push({path:p, url:URL.createObjectURL(f)}); IMAGES.set(k,arr); n++;
+  }
+  return n;
+}
+function imgCount(){ let n=0; for(const a of IMAGES.values()) n+=a.length; return n; }
+function resolveImg(src, rep){
+  const arr=IMAGES.get(baseName(src).toLowerCase()); if(!arr||!arr.length) return null;
+  if(arr.length===1 || !rep) return arr[arr.length-1].url;
+  const low=x=>x.path.toLowerCase();
+  const best=arr.find(x=>low(x).includes(rep.runId.toLowerCase()) && low(x).includes('/'+rep.moduleDir.toLowerCase()+'/'))
+    || arr.find(x=>low(x).includes(rep.runId.toLowerCase())) || arr[arr.length-1];
+  return best.url;
+}
+function readEntry(entry, out){
+  return new Promise(res=>{
+    if(entry.isFile) return entry.file(f=>{ FILE_PATH.set(f, entry.fullPath); out.push(f); res(); }, res);
+    if(entry.isDirectory){
+      const rd=entry.createReader(); const all=[];
+      const step=()=>rd.readEntries(batch=>{
+        if(!batch.length) return Promise.all(all.map(e=>readEntry(e,out))).then(res);
+        all.push(...batch); step();
+      }, res);
+      return step();
+    }
+    res();
+  });
+}
+async function filesFromDrop(dt){
+  const items=[...(dt.items||[])].filter(i=>i.kind==='file');
+  const entries=items.map(i=>i.webkitGetAsEntry?.()).filter(Boolean);
+  if(!entries.length) return [...(dt.files||[])];
+  const out=[]; await Promise.all(entries.map(e=>readEntry(e,out)));
+  return out.length?out:[...(dt.files||[])];
+}
+function addSource(path, name, text){
+  if(!isReport(text) && !isCatalog(text)) return false;
+  const p=normPath(path), key=p&&p!==name?p:`${name}#${(text.match(/^#\s+(.*)$/m)||[,''])[1].slice(0,80)}`;
+  // cùng nội dung đã nạp dưới khoá khác (VD: trước nạp lẻ không đường dẫn, giờ nạp cả thư mục) → thay
+  SOURCES=SOURCES.filter(s=>s.key!==key && s.text!==text);
+  SOURCES.push({key, path:p, name, text});
+  return true;
+}
+function addFiles(fileList){
+  const arr=[...fileList];
+  const nImg=addImages(arr);
+  let nMd=0, nSkip=0;
+  const jobs=arr.filter(f=>/\.(md|markdown)$/i.test(f.name)).map(f=>
+    f.text().then(t=>{ if(addSource(filePath(f), f.name, t)) nMd++; else nSkip++; }));
+  Promise.all(jobs).then(()=>{ save(); render();
+    const parts=[]; if(nMd) parts.push(`${nMd} file báo cáo/danh mục`); if(nImg) parts.push(`${nImg} ảnh`);
+    if(nSkip) parts.push(`bỏ qua ${nSkip} file .md không phải báo cáo so thiết kế`);
+    if(parts.length) toast('Đã nạp '+parts.join(' · '));
+  });
+}
+function toast(msg){
+  const el=document.createElement('div');
+  el.textContent=msg;
+  el.style.cssText='position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#101318;color:#fff;'+
+    'padding:9px 16px;border-radius:8px;font-size:13px;z-index:70;box-shadow:0 8px 24px rgba(0,0,0,.3)';
+  document.body.appendChild(el); setTimeout(()=>el.remove(),3200);
+}
+
+/* ============================ MARKDOWN → HTML (tối giản, đủ cho báo cáo) ============================ */
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function evChip(src, label, rep){
+  const bn=baseName(src), url=resolveImg(src, rep), lb=label||bn;
+  return url
+    ? `<button type="button" class="ev-chip" data-src="${esc(url)}" data-cap="${esc(bn)}" title="Bấm để xem ảnh ${esc(bn)}">🖼 ${lb}</button>`
+    : `<span class="ev-chip miss" title="Chưa nạp ảnh ${esc(bn)}">🖼 ${lb}</span>`;
+}
+function thumb(src, label, rep, big){
+  const bn=baseName(src), url=resolveImg(src, rep), cap=esc(label?`${stripMd(label)} — ${bn}`:bn);
+  return url
+    ? `<button type="button" class="thumb${big?' big':''}" data-src="${esc(url)}" data-cap="${esc(bn)}" title="Bấm để phóng to"><img src="${esc(url)}" alt="${esc(bn)}" loading="lazy"><span>${cap}</span></button>`
+    : `<span class="thumb miss${big?' big':''}"><span class="ph">Chưa nạp ảnh<br><code>${esc(bn)}</code></span><span>${cap}</span></span>`;
+}
+function inl(s, ctx){
+  ctx=ctx||{};
+  const tok=[]; const keep=h=>{ tok.push(h); return `\u0000${tok.length-1}\u0000`; };
+  let t=String(s??'').replace(/\\\|/g,'|');
+  t=t.replace(/`([^`]+)`/g,(m,c)=>keep(`<code>${esc(c)}</code>`));
+  t=t.replace(/\\([*_`\\])/g,(m,c)=>keep(esc(c)));
+  t=t.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g,(m,a,u)=>keep(IMG_RE.test(u)?evChip(u,esc(a)||null,ctx.rep):esc(a)));
+  t=t.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g,(m,a,u)=>{
+    if(IMG_RE.test(u)) return keep(evChip(u, esc(a), ctx.rep));
+    if(/^https?:\/\//i.test(u)) return keep(`<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(a)}</a>`);
+    return keep(`<span class="mdlink" title="${esc(u)}">${esc(a)}</span>`);
+  });
+  t=t.replace(/<br\s*\/?>/gi,()=>keep('<br>'));
+  t=esc(t);
+  t=t.replace(/(https?:\/\/[^\s<]+[^\s<.,;)])/g,(m,u)=>`<a href="${u}" target="_blank" rel="noopener noreferrer">${u}</a>`);
+  t=t.replace(/\*\*([^*]+?)\*\*/g,'<b>$1</b>').replace(/(^|[^*\w])\*([^*\s][^*]*?)\*(?![\w*])/g,'$1<i>$2</i>');
+  t=t.replace(/\n/g,'<br>');
+  for(let k=0;k<4 && /\u0000\d+\u0000/.test(t);k++) t=t.replace(/\u0000(\d+)\u0000/g,(m,i)=>tok[+i]);
+  return t;
+}
+function tableHTML(blk, ctx){
+  if(blk.length<2 || !/^[\s|:-]+$/.test(blk[1])) return `<p>${inl(blk.join('\n'),ctx)}</p>`;
+  const head=splitRowRaw(blk[0]);
+  const rows=blk.slice(2).filter(r=>!/^[\s|:-]+$/.test(r)).map(splitRowRaw);
+  return `<div class="mdt"><table><thead><tr>${head.map(h=>`<th>${inl(h,ctx)}</th>`).join('')}</tr></thead><tbody>${
+    rows.map(r=>`<tr>${head.map((_,i)=>`<td>${inl(r[i]||'',ctx)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+}
+function mdBlocks(text, ctx, opt){
+  opt=opt||{};
+  const lines=String(text||'').split(/\r?\n/); let i=0; const out=[]; let para=[];
+  const flush=()=>{ if(para.length){ out.push(`<p>${inl(para.join('\n'),ctx)}</p>`); para=[]; } };
+  while(i<lines.length){
+    const t=lines[i].trim();
+    if(!t){ flush(); i++; continue; }
+    if(/^<details/i.test(t)){
+      flush();
+      let summary=(t.match(/<summary>(.*?)<\/summary>/i)||[,''])[1];
+      i++; const inner=[]; let depth=1;
+      while(i<lines.length){
+        const x=lines[i].trim();
+        if(/^<details/i.test(x)) depth++;
+        if(/^<\/details>/i.test(x)){ depth--; if(!depth){ i++; break; } }
+        inner.push(lines[i]); i++;
+      }
+      if(!summary){ const k=inner.findIndex(x=>/<summary>/i.test(x));
+        if(k>=0){ summary=(inner[k].match(/<summary>(.*?)<\/summary>/i)||[,''])[1]; inner.splice(k,1); } }
+      out.push(`<details class="mdd"${opt.openDetails?' open':''}><summary>${inl(summary||'Chi tiết',ctx)}</summary><div class="mdd-body">${mdBlocks(inner.join('\n'),ctx,opt)}</div></details>`);
+      continue;
+    }
+    if(/^\|/.test(t)){ flush(); const blk=[]; while(i<lines.length && /^\s*\|/.test(lines[i])) blk.push(lines[i++]); out.push(tableHTML(blk,ctx)); continue; }
+    if(/^>/.test(t)){ flush(); const q=[]; while(i<lines.length && /^\s*>/.test(lines[i])) q.push(lines[i++].replace(/^\s*>\s?/,'')); out.push(`<blockquote>${mdBlocks(q.join('\n'),ctx,opt)}</blockquote>`); continue; }
+    if(/^[-*]\s+/.test(t)){ flush(); const items=[]; while(i<lines.length && /^\s*[-*]\s+/.test(lines[i])) items.push(lines[i++].replace(/^\s*[-*]\s+/,'')); out.push(`<ul>${items.map(x=>`<li>${inl(x,ctx)}</li>`).join('')}</ul>`); continue; }
+    const h=t.match(/^#{1,6}\s+(.*)$/); if(h){ flush(); out.push(`<h4 class="mdh">${inl(h[1],ctx)}</h4>`); i++; continue; }
+    const im=t.match(/^!\[([^\]]*)\]\(([^)\s]+)\)$/);
+    if(im){ flush(); if(!opt.skipImages) out.push(`<div class="thumbs" style="margin:8px 0">${thumb(im[2],im[1],ctx.rep,true)}</div>`); i++; continue; }
+    para.push(t); i++;
+  }
+  flush(); return `<div class="md">${out.join('')}</div>`;
+}
+
+/* ============================ DERIVED ============================ */
+const gKey=r=>`${r.ns}|${r.module}|${r.platform}`;
+const modKey=r=>`${r.ns}|${r.module}`;
+function buildModel(){
+  const reports=[], catalogs=[];
+  for(const s of SOURCES){
+    try{
+      if(isReport(s.text)){ const r=parseReport(s.text,s.path,s.name); r.key=s.key; reports.push(r); }
+      else if(isCatalog(s.text)){ const c=parseCatalog(s.text,s.path,s.name); c.key=s.key; catalogs.push(c); }
+    }catch(e){ console.error('Không đọc được', s.key, e); }
+  }
+  reports.sort((a,b)=>gKey(a).localeCompare(gKey(b)) || a.runId.localeCompare(b.runId));
+  const groups=new Map();
+  for(const r of reports){ if(!groups.has(gKey(r))) groups.set(gKey(r),[]); groups.get(gKey(r)).push(r); }
+  const latest=new Set();
+  for(const runs of groups.values()) latest.add(runs[runs.length-1]);
+  for(const r of reports) r.isLatest=latest.has(r);
+
+  // DIFF hiện tại = dòng của lần chạy mới nhất có liệt kê mã đó; mọi lần chạy có mã đó = lịch sử
+  const diffMap=new Map();
+  for(const r of reports) for(const d of r.diffs){
+    const k=gKey(r)+'|'+d.code;
+    const hist={runId:r.runId, statusKey:d.statusKey, statusRaw:d.statusRaw, severity:d.severity, ownerRaw:d.ownerRaw, desc:d.desc, repKey:r.key};
+    const prev=diffMap.get(k);
+    const row={...d, rep:r, repKey:r.key, ns:r.ns, module:r.module, moduleKey:modKey(r), platform:r.platform,
+      platformLabel:r.platformLabel, runId:r.runId, history:prev?[...prev.history,hist]:[hist]};
+    diffMap.set(k,row);
+  }
+  const diffs=[...diffMap.values()];
+  for(const d of diffs){
+    const runs=groups.get(gKey(d.rep)); const last=runs[runs.length-1];
+    d.notInLatest = last!==d.rep ? last.runId : '';
+  }
+  const repByKey=new Map(reports.map(r=>[r.key,r]));
+  return {reports, catalogs, groups, diffs, repByKey};
+}
+let M={reports:[],catalogs:[],groups:new Map(),diffs:[],repByKey:new Map()};
+
+function scopeOk(x){
+  const mod=$('#fModule').value, pf=$('#fPlatform').value;
+  if(mod && modKey(x)!==mod) return false;
+  if(pf && x.platform!==pf) return false;
+  return true;
+}
+const q=()=>$('#q').value.trim().toLowerCase();
+function filteredDiffs(){
+  const s=q();
+  return M.diffs.filter(d=>{
+    if(!scopeOk(d)) return false;
+    if(offStatus.has(d.statusKey)) return false;
+    if(d.severity && offSev.has(d.severity)) return false;
+    if(d.type && offType.has(d.type)) return false;
+    if(offOwner.has(d.ownerKey||'OTHER')) return false;
+    if(!s) return true;
+    const fNames=d.framesArr.map(c=>(d.rep.frames.find(f=>f.code===c)||{}).name||'').join(' ');
+    return [d.code,d.statusRaw,d.module,d.platform,d.platformLabel,d.frames,fNames,d.type,d.severity,d.ownerRaw,d.desc,
+      stripMd(d.actualRaw),stripMd(d.designRaw),stripMd(d.evRaw),d.runId].some(v=>String(v||'').toLowerCase().includes(s));
+  }).sort(rowCmp(sortKey,sortDir));
+}
+const SEV_RANK={High:0,Medium:1,Low:2};
+const ST_RANK=ALL_ST.reduce((o,s,i)=>(o[s]=i,o),{});
+const OW_RANK={PO:0,DEV:1,DESIGN:2,OTHER:3};
+const RANKS={severity:SEV_RANK, statusKey:ST_RANK, ownerKey:OW_RANK};
+function rowCmp(key, dir){
+  const rank=RANKS[key];
+  return (x,y)=>{
+    const a=String(x[key]??'').trim(), b=String(y[key]??'').trim();
+    if(!a!==!b) return a?-1:1;
+    const main=rank ? (rank[a]??99)-(rank[b]??99) : a.localeCompare(b,'vi',{numeric:true,sensitivity:'base'});
+    return dir*main || String(x.code||'').localeCompare(String(y.code||''),'vi',{numeric:true});
+  };
+}
+function curStatusOf(rep, code){
+  const d=M.diffs.find(x=>x.code===code && gKey(x.rep)===gKey(rep));
+  return d?d.statusKey:'';
+}
+
+/* ============================ RENDER ============================ */
+const stBadge=(k,raw)=>`<span class="st ${k}" title="${esc(raw||'')}">${ST_LABEL[k]||esc(k)}</span>`;
+const svBadge=s=>s?`<span class="sv ${esc(s)}">${esc(s)}</span>`:'—';
+const owBadge=(k,raw)=>k?`<span class="ow ${k}">${esc(OW_LABEL[k]&&k!=='OTHER'?OW_LABEL[k]:raw)}</span>`:'—';
+const pfText=(p,l)=>`${esc(PF_LABEL[p]||p)}${l&&l.toLowerCase()!==String(p).toLowerCase()?` <span class="pf">(${esc(l)})</span>`:''}`;
+const repLabel=r=>`${r.module} · ${PF_LABEL[r.platform]||r.platform} · ${r.runId}`;
+const diffChip=(rep,code)=>{ const k=curStatusOf(rep,code);
+  return `<button type="button" class="dchip ${k}" data-diff="${esc(rep.key)}" data-code="${esc(code)}" title="${esc(ST_LABEL[k]||'')}">${esc(code)}</button>`; };
+
+function render(){
+  M=buildModel();
+  const has=SOURCES.length>0;
+  $('#drop').style.display=has?'none':'block';
+  $('#app').style.display=has?'block':'none';
+  $('#btnReset').style.display=has?'':'none';
+  const nI=imgCount();
+  $('#imgInfo').innerHTML=nI?`Đã nạp <b>${nI}</b> ảnh`:'<span style="color:var(--muted)">Chưa nạp ảnh nào</span>';
+  if(!has){ $('#files').innerHTML='<div style="color:var(--muted);font-size:12.5px">Chưa có file nào</div>'; return; }
+
+  $('#files').innerHTML=SOURCES.map(s=>{
+    const r=M.reports.find(x=>x.key===s.key), c=M.catalogs.find(x=>x.key===s.key);
+    const lbl=r?`${r.module}/${r.platform} · ${r.runId.replace(/^run_/,'')}${r.runApprox?' ≈':''}`:c?`README ${c.ns||'(mặc định)'}`:s.name;
+    return `<div class="file"><span class="tag ${c?'idx':''}">${c?'DANH MỤC':'BÁO CÁO'}</span>
+      <span class="nm" title="${esc(s.path||s.name)}">${esc(lbl)}</span>
+      <button class="rm" data-rm="${esc(s.key)}" title="Gỡ file">×</button></div>`;
+  }).join('');
+
+  // select module / nền tảng
+  const mods=[...new Map(M.reports.map(r=>[modKey(r), r.ns?`${r.module} (${r.ns})`:r.module])).entries()].sort((a,b)=>a[1].localeCompare(b[1]));
+  const curM=$('#fModule').value;
+  $('#fModule').innerHTML='<option value="">Mọi module</option>'+mods.map(([k,l])=>`<option value="${esc(k)}" ${k===curM?'selected':''}>${esc(l)}</option>`).join('');
+  const pfs=[...new Set(M.reports.map(r=>r.platform))].sort();
+  const curP=$('#fPlatform').value;
+  $('#fPlatform').innerHTML='<option value="">Mọi nền tảng</option>'+pfs.map(p=>`<option value="${esc(p)}" ${p===curP?'selected':''}>${esc(PF_LABEL[p]||p)}</option>`).join('');
+
+  renderCatalogs();
+  renderStatsAlerts();
+  renderChips();
+  renderDiffTable();
+  renderFrames();
+  renderReports();
+  $('#cntReport').textContent=M.reports.filter(scopeOk).length;
+}
+
+function renderCatalogs(){
+  $('#catalogs').innerHTML=M.catalogs.map(c=>{
+    const title=inl(c.h1||'Danh mục so thiết kế');
+    const main=c.main&&c.main.rows.length
+      ? tableHTML(['|'+c.main.header.join('|')+'|','|'+c.main.header.map(()=>'---').join('|')+'|',...c.main.rows.map(r=>'|'+r.join('|')+'|')],{})
+      : '<div class="note">Danh mục chưa có lần chạy nào.</div>';
+    const log=c.log&&c.log.rows.length
+      ? `<h4>Nhật ký</h4>${tableHTML(['|'+c.log.header.join('|')+'|','|'+c.log.header.map(()=>'---').join('|')+'|',...c.log.rows.map(r=>'|'+r.join('|')+'|')],{})}` : '';
+    // Mặc định: chỉ có danh mục → mở; đã có báo cáo → gập (bảng DIFF quan trọng hơn). Người dùng bấm thì nhớ lựa chọn.
+    const open=CATALOG_OPEN.has(c.key)?CATALOG_OPEN.get(c.key):!M.reports.length;
+    return `<details class="catalog" data-ck="${esc(c.key)}"${open?' open':''}><summary>📒 ${title} <span class="pf">${esc(c.path||c.name)} · ${c.main?c.main.rows.length:0} dòng</span></summary><div class="cbody md">${main}${log}</div></details>`;
+  }).join('');
+}
+const CATALOG_OPEN=new Map();
+
+function renderStatsAlerts(){
+  const diffs=M.diffs.filter(scopeOk);
+  const open=diffs.filter(d=>d.statusKey==='OPEN');
+  const highOpen=open.filter(d=>d.severity==='High');
+  const by=k=>open.filter(d=>d.ownerKey===k).length;
+  const latest=M.reports.filter(r=>r.isLatest && scopeOk(r));
+  const frames=latest.flatMap(r=>r.frames.map(f=>({...f,rep:r})));
+  const nc=frames.filter(f=>f.kind==='NC'), cmp=frames.length-nc.length;
+  $('#stats').innerHTML=[
+    ['open','🔴 DIFF đang mở',open.length],['crit','High đang mở',highOpen.length],
+    ['','Dev (mở)',by('DEV')],['design','Design (mở)',by('DESIGN')],['pending','Cần PO quyết (mở)',by('PO')],
+    ['closed','✅ Đã khắc phục',diffs.filter(d=>d.statusKey==='FIXED').length],
+    ['',`Khung đã so`,`${cmp}<small> / ${frames.length}</small>`],['','❔ Không so được',nc.length],
+    ['','Báo cáo',M.reports.filter(scopeOk).length]
+  ].map(([cl,l,n])=>`<div class="stat ${cl}"><div class="n">${n}</div><div class="l">${l}</div></div>`).join('');
+
+  const lnk=d=>`<button class="lnk" data-diff="${esc(d.repKey)}" data-code="${esc(d.code)}">${esc(d.code)}</button>`;
+  const al=[];
+  if(highOpen.length) al.push(['danger',`${highOpen.length} DIFF mức High đang mở — xử lý trước`, highOpen.map(lnk).join(' · ')]);
+  const poOpen=open.filter(d=>d.ownerKey==='PO');
+  if(poOpen.length) al.push(['warn',`${poOpen.length} DIFF "Cần PO quyết" còn mở — chưa ai sửa được cho tới khi PO chốt`, poOpen.map(lnk).join(' · ')]);
+  if(nc.length){
+    const ncItems=latest.flatMap(r=>r.notCompared.map(x=>`<li><b>${esc(r.module)}/${esc(r.platform)}</b> · ${inl(x.frameRaw,{rep:r})} — ${inl(x.reasonRaw,{rep:r})}</li>`));
+    al.push(['info',`${nc.length} khung ❔ chưa so được trong lần chạy mới nhất`,
+      nc.map(f=>`<b>${esc(f.code)}</b> ${esc(f.name)} <span class="pf">(${esc(f.rep.module)}/${esc(f.rep.platform)})</span>`).join(' · ')
+      + (ncItems.length?`<ul>${ncItems.join('')}</ul>`:'')]);
+  }
+  const noEv=diffs.filter(d=>d.statusKey==='OPEN' && !d.evLinks.length);
+  if(noEv.length) al.push(['warn',`${noEv.length} DIFF đang mở không có link ảnh evidence — người nhận không có bằng chứng để xem`, noEv.map(lnk).join(' · ')]);
+  if(M.reports.length && !imgCount()) al.push(['info','Chưa nạp ảnh evidence',
+    'Ảnh không được lưu lại giữa các lần mở trang. Kéo thả lại thư mục <code>docs/design-reviews/</code> (hoặc thư mục <code>run_*/evidence/</code>) để xem ảnh đặt cạnh nhau và ảnh đánh dấu.']);
+  const approx=M.reports.filter(r=>r.runApprox);
+  if(approx.length) al.push(['info',`${approx.length} báo cáo nạp lẻ không có đường dẫn — mã lần chạy suy từ "Ngày chạy" (≈)`,
+    'Nạp cả thư mục để có đúng module / nền tảng / <code>run_&lt;YYYYMMDD_HHMMSS&gt;</code> từ đường dẫn.']);
+  $('#alerts').innerHTML=al.map(([k,t,d])=>`<div class="alert ${k}"><b>${t}</b><div>${d||''}</div></div>`).join('');
+}
+
+function renderChips(){
+  const types=[...new Set([...BASE_TY,...M.diffs.map(d=>d.type).filter(Boolean)])];
+  const owners=[...ALL_OW, ...(M.diffs.some(d=>d.ownerKey==='OTHER'||!d.ownerKey)?['OTHER']:[])];
+  $('#chipsSt').innerHTML=ALL_ST.map(s=>`<button class="chip ${offStatus.has(s)?'':'on'}" data-f="st" data-v="${s}">${ST_LABEL[s]}</button>`).join(' ');
+  $('#chipsSv').innerHTML=ALL_SV.map(s=>`<button class="chip ${offSev.has(s)?'':'on'}" data-f="sv" data-v="${s}">${s}</button>`).join(' ');
+  $('#chipsTy').innerHTML=types.map(s=>`<button class="chip ${offType.has(s)?'':'on'}" data-f="ty" data-v="${esc(s)}">${esc(s)}</button>`).join(' ');
+  $('#chipsOw').innerHTML=owners.map(s=>`<button class="chip ${offOwner.has(s)?'':'on'}" data-f="ow" data-v="${s}">${OW_LABEL[s]}</button>`).join(' ');
+}
+
+function renderDiffTable(){
+  const rows=filteredDiffs();
+  document.querySelectorAll('#tbl th').forEach(th=>{ th.classList.toggle('sorted',th.dataset.s===sortKey); th.classList.toggle('desc',th.dataset.s===sortKey&&sortDir<0); });
+  $('#rows').innerHTML=rows.map((d,i)=>`<tr data-i="${i}">
+    <td class="id">${esc(d.code)}${d.history.length>1?`<div class="pf">${d.history.length} lần chạy</div>`:''}</td>
+    <td>${stBadge(d.statusKey,d.statusRaw)}</td>
+    <td title="${esc(d.rep.moduleName)}">${esc(d.module)}${d.ns?`<div class="pf">${esc(d.ns)}</div>`:''}</td>
+    <td>${pfText(d.platform,d.platformLabel)}</td>
+    <td>${esc(d.frames||'—')}</td>
+    <td>${d.type?`<span class="ty">${esc(d.type)}</span>`:'—'}</td>
+    <td>${svBadge(d.severity)}</td>
+    <td>${owBadge(d.ownerKey,d.ownerRaw)}</td>
+    <td>${inl(d.descRaw,{rep:d.rep})}</td></tr>`).join('');
+  $('#noRows').style.display=rows.length?'none':'block';
+  $('#cntDiff').textContent=rows.length;
+  window.__rows=rows;
+}
+
+function frameThumbSrc(rep, f){
+  const det=rep.details[f.code];
+  const cand=[...(det?links(det.body):[])];
+  for(const [bn,arr] of IMAGES) if(bn.startsWith(f.code.toLowerCase()+'_') && bn.includes('_side')) cand.push(bn);
+  return cand.find(u=>resolveImg(u,rep)) || cand[0] || '';
+}
+function renderFrames(){
+  const showOld=$('#showOldRuns').checked, s=q();
+  const reps=M.reports.filter(r=>scopeOk(r) && (showOld||r.isLatest)).slice().sort((a,b)=>gKey(a).localeCompare(gKey(b)) || b.runId.localeCompare(a.runId));
+  let total=0;
+  $('#frameGroups').innerHTML=reps.map(r=>{
+    const frames=r.frames.filter(f=>!s || [f.code,f.name,f.result,f.diffs.join(' ')].some(v=>String(v).toLowerCase().includes(s)));
+    total+=frames.length;
+    if(!frames.length) return '';
+    return `<div class="grp"><div class="grp-h"><b>${esc(r.module)} · ${esc(r.moduleName||'')}</b>
+      <span class="pf">${pfText(r.platform,r.platformLabel)} · <code>${esc(r.runId)}</code>${r.ns?` · ${esc(r.ns)}`:''}</span>
+      <span class="badge ${r.isLatest?'':'old'}">${r.isLatest?'mới nhất':'lần chạy cũ'}</span></div>
+      <div class="grid">${frames.map(f=>{
+        const src=frameThumbSrc(r,f), url=src?resolveImg(src,r):null;
+        return `<div class="fcard" role="button" tabindex="0" data-frame="${esc(r.key)}" data-code="${esc(f.code)}">
+          <div class="th">${url?`<img src="${esc(url)}" alt="${esc(f.code)}" loading="lazy">`:`<div class="ph">${src?`Chưa nạp ảnh<br><code>${esc(baseName(src))}</code>`:(f.kind==='NC'?'❔ Không so được':'Không có ảnh')}</div>`}</div>
+          <div class="fb"><span class="fc">${esc(f.code)}${f.node?` · node ${esc(f.node)}`:''}</span>
+            <span class="fn">${esc(f.name||'—')}</span>
+            <span><span class="res ${f.kind}">${esc(f.result||'—')}</span></span>
+            ${f.diffs.length?`<span class="dchips">${f.diffs.map(c=>diffChip(r,c)).join('')}</span>`:''}</div></div>`;
+      }).join('')}</div></div>`;
+  }).join('') || '<div class="empty">Không có khung nào khớp bộ lọc.</div>';
+  $('#cntFrame').textContent=total;
+}
+
+function renderReports(){
+  const reps=M.reports.filter(scopeOk).slice().sort((a,b)=>gKey(a).localeCompare(gKey(b)) || b.runId.localeCompare(a.runId));
+  $('#reportList').innerHTML=reps.map(r=>{
+    const ctx={rep:r};
+    const cnt=st=>r.diffs.filter(d=>d.statusKey===st).length;
+    const nc=r.frames.filter(f=>f.kind==='NC').length;
+    const sec=(s,open)=>s&&s.text?`<details${open?' open':''}><summary>${esc(s.title)}</summary><div class="mdc">${mdBlocks(s.text,ctx)}</div></details>`:'';
+    return `<div class="rcard" data-gal="1">
+      <h3>${esc(r.module)} · ${esc(r.moduleName||'')} <span class="badge ${r.isLatest?'':'old'}">${r.isLatest?'mới nhất':'lần chạy cũ'}</span></h3>
+      <div class="subtitle">${pfText(r.platform,r.platformLabel)} · <code>${esc(r.runId)}</code>${r.runApprox?' (≈ suy từ Ngày chạy)':''}${r.ns?` · ${esc(r.ns)}`:''} · <span title="${esc(r.path||r.name)}">${esc(r.path||r.name)}</span></div>
+      <div class="cnts">
+        <span class="st OPEN">${cnt('OPEN')} mở</span><span class="st FIXED">${cnt('FIXED')} đã khắc phục</span>
+        <span class="st ACCEPTED">${cnt('ACCEPTED')} chấp nhận</span><span class="st OBSOLETE">${cnt('OBSOLETE')} không còn áp dụng</span>
+        <span class="res OTHER">${r.frames.length-nc}/${r.frames.length} khung đã so</span>${nc?`<span class="res NC">${nc} ❔</span>`:''}
+      </div>
+      <div class="tablewrap meta"><table><tbody>${r.meta.map(([k,v])=>`<tr><td>${esc(k)}</td><td>${inl(v,ctx)}</td></tr>`).join('')}</tbody></table></div>
+      ${sec(r.secSummary,true)}${sec(r.secNc)}${sec(r.secNotes)}${sec(r.secNext)}
+    </div>`;
+  }).join('') || '<div class="empty">Chưa có báo cáo nào khớp bộ lọc.</div>';
+}
+
+/* ---- Panel chi tiết ---- */
+function kvRows(rows){
+  return `<div class="kv">${rows.filter(([,v])=>v!=null && v!=='').map(([k,v])=>`<div><span class="k">${esc(k)}</span><span class="v">${v}</span></div>`).join('')}</div>`;
+}
+function openDiff(d){
+  const r=d.rep, ctx={rep:r};
+  $('#detail').classList.remove('wide');
+  $('#dTitle').textContent=d.code;
+  $('#dSub').textContent=d.desc;
+  const evThumbs=d.evLinks.length
+    ? `<div class="thumbs">${[...String(d.evRaw).matchAll(/!?\[([^\]]*)\]\(([^)\s]+)\)/g)].filter(m=>IMG_RE.test(m[2])).map(m=>thumb(m[2],m[1],r)).join('')}</div>`
+      + (d.evLinks.some(u=>!resolveImg(u,r))?`<div class="hint">Có ảnh chưa nạp — kéo thả thư mục <code>${esc(r.runId)}/evidence/</code> (hoặc cả <code>docs/design-reviews/</code>) vào trang.</div>`:'')
+    : '<span class="pf">Không có link ảnh evidence</span>';
+  const frameLinks=d.framesArr.map(c=>{ const f=r.frames.find(x=>x.code===c);
+    return `<button type="button" class="dchip" data-frame="${esc(r.key)}" data-code="${esc(c)}" title="Mở khung">${esc(c)}${f&&f.name?` · ${esc(f.name)}`:''}</button>`; }).join(' ');
+  const body=kvRows([
+    ['Trạng thái', stBadge(d.statusKey,d.statusRaw)+(d.statusRaw&&d.statusRaw!==ST_LABEL[d.statusKey]?` <span class="pf">${esc(d.statusRaw)}</span>`:'')],
+    ['Module', `${esc(d.module)}${r.moduleName?` — ${esc(r.moduleName)}`:''}${d.ns?` <span class="pf">(${esc(d.ns)})</span>`:''}`],
+    ['Nền tảng', pfText(d.platform,d.platformLabel)],
+    ['Khung', `<span class="dchips">${frameLinks}</span>`],
+    ['Loại', d.type?`<span class="ty">${esc(d.type)}</span>`:''],
+    ['Mức độ', svBadge(d.severity)],
+    ['Ai xử lý', owBadge(d.ownerKey,d.ownerRaw)],
+    ['Mô tả', inl(d.descRaw,ctx)],
+    ['Thực tế (số đo)', inl(d.actualRaw,ctx)],
+    ['Thiết kế (số đo)', inl(d.designRaw,ctx)],
+    ['Lần chạy', `<code>${esc(d.runId)}</code>${d.notInLatest?` <span class="pf">— lần chạy mới nhất <code>${esc(d.notInLatest)}</code> không liệt kê mã này; trạng thái lấy theo lần chạy trên</span>`:''}`],
+    ['File nguồn', `<span class="pf">${esc(r.path||r.name)}</span>`]
+  ])+`<h4 class="sec">Evidence</h4>${evThumbs}
+    <h4 class="sec">Lịch sử qua các lần chạy</h4>
+    <div class="tablewrap histwrap"><table><thead><tr><th>Lần chạy</th><th>Trạng thái</th><th>Mức độ</th><th>Ai xử lý</th><th>Mô tả</th></tr></thead><tbody>${
+      d.history.slice().reverse().map((h,i)=>`<tr><td class="id">${esc(h.runId)}${i===0?' <span class="badge">hiện tại</span>':''}</td>
+        <td>${stBadge(h.statusKey,h.statusRaw)}</td><td>${svBadge(h.severity)}</td><td>${esc(h.ownerRaw||'—')}</td>
+        <td>${i<d.history.length-1 && h.desc===d.history[d.history.length-2-i]?.desc?'<span class="pf">không đổi</span>':esc(h.desc)}</td></tr>`).join('')
+    }</tbody></table></div>`;
+  $('#dBody').innerHTML=body;
+  $('#detail').classList.add('open'); $('#detail').scrollTop=0;
+}
+function openFrame(rep, code){
+  const f=rep.frames.find(x=>x.code===code)||{code,name:'',diffs:[]};
+  const det=rep.details[code], ctx={rep};
+  $('#detail').classList.add('wide');
+  $('#dTitle').textContent=`${code} · ${f.name||(det&&stripMd(det.title))||''}`;
+  $('#dSub').textContent=`${repLabel(rep)}${rep.moduleName?' — '+rep.moduleName:''}`;
+  // ảnh: ảnh nhúng trong mục 4 + mọi ảnh evidence khác cùng tiền tố mã khung của đúng lần chạy này
+  const main=det?links(det.body):[];
+  const extra=[];
+  for(const [bn,arr] of IMAGES){
+    if(!bn.startsWith(code.toLowerCase()+'_') || main.some(u=>baseName(u).toLowerCase()===bn)) continue;
+    if(arr.length===1 || arr.some(x=>x.path.toLowerCase().includes(rep.runId.toLowerCase()))) extra.push(bn);
+  }
+  extra.sort();
+  const nc=rep.notCompared.filter(x=>x.frame.startsWith(code));
+  const body=kvRows([
+    ['Khung Figma (node-id)', `${esc(f.name||'—')}${f.node?` <code>${esc(f.node)}</code>`:''}`],
+    ['Trạng thái vẽ', inl(f.drawRaw||'',ctx)],
+    ['Cách tới trên app', inl(f.howRaw||'',ctx)],
+    ['Kết quả', f.result?`<span class="res ${f.kind}">${esc(f.result)}</span>`:''],
+    ['DIFF', f.diffs.length?`<span class="dchips">${f.diffs.map(c=>diffChip(rep,c)).join('')}</span>`:'<span class="pf">Không có</span>'],
+    ['Không so được', nc.map(x=>`${inl(x.frameRaw,ctx)} — ${inl(x.reasonRaw,ctx)}${x.needRaw?` · <i>Cần:</i> ${inl(x.needRaw,ctx)}`:''}`).join('<br>')]
+  ])
+  + `<h4 class="sec">Ảnh</h4>`
+  + (main.length||extra.length
+      ? `<div class="thumbs">${main.map(u=>thumb(u,'',rep,true)).join('')}</div>${extra.length?`<div class="thumbs" style="margin-top:10px">${extra.map(u=>thumb(u,'',rep)).join('')}</div>`:''}`
+      : '<span class="pf">Báo cáo không nhúng ảnh cho khung này</span>')
+  + ((main.concat(extra)).some(u=>!resolveImg(u,rep))?`<div class="hint">Có ảnh chưa nạp — kéo thả thư mục <code>${esc(rep.runId)}/evidence/</code> (hoặc cả <code>docs/design-reviews/</code>) vào trang.</div>`:'')
+  + (det?`<h4 class="sec">Bảng đo tự động</h4>${rep.detailIntro?`<div class="note">${inl(rep.detailIntro,ctx)}</div>`:''}${mdBlocks(det.body,ctx,{skipImages:true,openDetails:true})}`:'');
+  $('#dBody').innerHTML=body;
+  $('#detail').classList.add('open'); $('#detail').scrollTop=0;
+}
+
+/* ---- Lightbox (có ← → để lướt qua các ảnh trong cùng khối) ---- */
+const LB={list:[],i:0};
+function openLightboxFrom(btn){
+  const scope=btn.closest('[data-gal]')||document.body;
+  const seen=new Set();
+  LB.list=[...scope.querySelectorAll('[data-src]')].filter(b=>!seen.has(b.dataset.src)&&seen.add(b.dataset.src))
+    .map(b=>({src:b.dataset.src,cap:b.dataset.cap}));
+  LB.i=Math.max(0,LB.list.findIndex(x=>x.src===btn.dataset.src));
+  showLb();
+}
+function showLb(){
+  const it=LB.list[LB.i]; if(!it) return;
+  $('#lbImg').src=it.src; $('#lbCap').textContent=`${it.cap}${LB.list.length>1?`  (${LB.i+1}/${LB.list.length})`:''}`;
+  $('#lbPrev').style.display=$('#lbNext').style.display=LB.list.length>1?'':'none';
+  $('#lightbox').classList.add('open');
+}
+function stepLb(n){ if(!LB.list.length) return; LB.i=(LB.i+n+LB.list.length)%LB.list.length; showLb(); }
+function closeLightbox(){ $('#lightbox').classList.remove('open'); $('#lbImg').removeAttribute('src'); }
+
+/* ============================ EXPORT ============================ */
+function ts(){ const p=n=>String(n).padStart(2,'0'); const d=new Date();
+  return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`; }
+function downloadBlob(name, blob){
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+function exportPlan(){
+  const head=['Mã','Trạng thái','Ghi chú trạng thái','Module','Nền tảng','Khung','Loại','Mức độ','Ai xử lý','Mô tả',
+    'Thực tế (số đo)','Thiết kế (số đo)','Evidence','Lần chạy','Số lần chạy có mã này','File nguồn'];
+  const rows=filteredDiffs().map(d=>[d.code, ST_LABEL[d.statusKey], d.statusRaw!==ST_LABEL[d.statusKey]?d.statusRaw:'',
+    d.ns?`${d.module} (${d.ns})`:d.module, d.platformLabel?`${PF_LABEL[d.platform]||d.platform} (${d.platformLabel})`:(PF_LABEL[d.platform]||d.platform),
+    d.frames, d.type, d.severity, d.ownerRaw, d.desc, stripMd(d.actualRaw), stripMd(d.designRaw),
+    d.evLinks.map(baseName).join('\n'), d.runId, String(d.history.length), d.rep.path||d.rep.name]);
+  const widths=[20,18,26,16,18,16,11,10,14,50,40,40,34,22,10,40];
+  return {base:'design_review', sheets:[{name:'DIFF', widths, head, rows,
+    styleCols:[{col:1,map:XLSX_STATUS},{col:7,map:XLSX_SEV}]}]};
+}
+function toCsv(){
+  const p=exportPlan(), s=p.sheets[0], qq=v=>`"${String(v??'').replace(/"/g,'""')}"`;
+  const body=[s.head,...s.rows].map(r=>r.map(qq).join(',')).join('\r\n');
+  downloadBlob(`${p.base}_${ts()}.csv`, new Blob(['﻿'+body],{type:'text/csv;charset=utf-8'}));
+}
+
+/* ---- XLSX: dựng thủ công bằng zip + Office Open XML (giống bugs-viewer — không dùng SheetJS) */
+const CRC_TABLE=(()=>{const t=new Uint32Array(256);
+  for(let i=0;i<256;i++){let c=i;for(let k=0;k<8;k++)c=c&1?0xedb88320^(c>>>1):c>>>1;t[i]=c>>>0}return t})();
+function crc32(b){let c=0xffffffff;for(let i=0;i<b.length;i++)c=CRC_TABLE[(c^b[i])&0xff]^(c>>>8);return (c^0xffffffff)>>>0}
+function zipStore(files){
+  const enc=new TextEncoder();
+  const e=files.map(f=>{const data=enc.encode(f.content);return {data,crc:crc32(data)}});
+  const nm=files.map(f=>enc.encode(f.name));
+  const localSize=e.reduce((s,x,i)=>s+30+nm[i].length+x.data.length,0);
+  const centralSize=e.reduce((s,_,i)=>s+46+nm[i].length,0);
+  const buf=new ArrayBuffer(localSize+centralSize+22), v=new DataView(buf), out=new Uint8Array(buf);
+  let off=0; const offs=[];
+  e.forEach((x,i)=>{ offs.push(off);
+    v.setUint32(off,0x04034b50,true); v.setUint16(off+4,20,true); v.setUint16(off+6,0x0800,true);
+    v.setUint16(off+8,0,true); v.setUint16(off+10,0,true); v.setUint16(off+12,0x2821,true);
+    v.setUint32(off+14,x.crc,true); v.setUint32(off+18,x.data.length,true); v.setUint32(off+22,x.data.length,true);
+    v.setUint16(off+26,nm[i].length,true); v.setUint16(off+28,0,true); off+=30;
+    out.set(nm[i],off); off+=nm[i].length; out.set(x.data,off); off+=x.data.length; });
+  const cStart=off;
+  e.forEach((x,i)=>{
+    v.setUint32(off,0x02014b50,true); v.setUint16(off+4,20,true); v.setUint16(off+6,20,true);
+    v.setUint16(off+8,0x0800,true); v.setUint16(off+10,0,true); v.setUint16(off+12,0,true);
+    v.setUint16(off+14,0x2821,true); v.setUint32(off+16,x.crc,true);
+    v.setUint32(off+20,x.data.length,true); v.setUint32(off+24,x.data.length,true);
+    v.setUint16(off+28,nm[i].length,true); v.setUint16(off+30,0,true); v.setUint16(off+32,0,true);
+    v.setUint16(off+34,0,true); v.setUint16(off+36,0,true); v.setUint32(off+38,0,true);
+    v.setUint32(off+42,offs[i],true); off+=46; out.set(nm[i],off); off+=nm[i].length; });
+  v.setUint32(off,0x06054b50,true); v.setUint16(off+8,e.length,true); v.setUint16(off+10,e.length,true);
+  v.setUint32(off+12,centralSize,true); v.setUint32(off+16,cStart,true);
+  return new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+function xmlEsc(s){ let o=''; for(const ch of String(s??'')){ const c=ch.codePointAt(0);
+    if(c===9||c===10||c===13||c>=32) o+=ch; }
+  return o.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function colLetter(i){ let n=i+1,s=''; while(n>0){ const r=(n-1)%26; s=String.fromCharCode(65+r)+s; n=Math.floor((n-1)/26);} return s; }
+
+// style id trong STYLES_XML: 3 xanh lá · 4 đỏ · 5 vàng · 6 xám · 7 tím
+const XLSX_STATUS={[ST_LABEL.OPEN]:4,[ST_LABEL.FIXED]:3,[ST_LABEL.ACCEPTED]:6,[ST_LABEL.OBSOLETE]:7};
+const XLSX_SEV={High:4,Medium:5,Low:6};
+const STYLES_XML=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="7"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font><font><b/><sz val="11"/><color rgb="FF166534"/><name val="Calibri"/></font><font><b/><sz val="11"/><color rgb="FF991B1B"/><name val="Calibri"/></font><font><b/><sz val="11"/><color rgb="FF92400E"/><name val="Calibri"/></font><font><b/><sz val="11"/><color rgb="FF475569"/><name val="Calibri"/></font><font><b/><sz val="11"/><color rgb="FF5B21B6"/><name val="Calibri"/></font></fonts><fills count="8"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF2F7A29"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFDCFCE7"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFEE2E2"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFEF3C7"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFF1F5F9"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFEDE9FE"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="8"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf><xf numFmtId="0" fontId="2" fillId="3" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="top" horizontal="center" wrapText="1"/></xf><xf numFmtId="0" fontId="3" fillId="4" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="top" horizontal="center" wrapText="1"/></xf><xf numFmtId="0" fontId="4" fillId="5" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="top" horizontal="center" wrapText="1"/></xf><xf numFmtId="0" fontId="5" fillId="6" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="top" horizontal="center" wrapText="1"/></xf><xf numFmtId="0" fontId="6" fillId="7" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="top" horizontal="center" wrapText="1"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+
+function sheetXml(sh){
+  const all=[sh.head,...sh.rows], last=colLetter(sh.head.length-1);
+  const body=all.map((cells,r)=>{
+    const n=r+1;
+    const td=cells.map((val,c)=>{
+      const v=String(val??'');
+      let s = r===0 ? 1 : 2;
+      if(r>0) for(const sc of (sh.styleCols||[])) if(sc.col===c && sc.map[v]!==undefined) s=sc.map[v];
+      return v==='' ? `<c r="${colLetter(c)}${n}" s="${s}"/>`
+        : `<c r="${colLetter(c)}${n}" s="${s}" t="inlineStr"><is><t xml:space="preserve">${xmlEsc(v)}</t></is></c>`;
+    }).join('');
+    return `<row r="${n}"${r===0?' ht="22" customHeight="1"':''}>${td}</row>`;
+  }).join('');
+  const cols=(sh.widths||sh.head.map(()=>24)).map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join('');
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><sheetFormatPr defaultRowHeight="15"/><cols>${cols}</cols><sheetData>${body}</sheetData><autoFilter ref="A1:${last}${all.length}"/></worksheet>`;
+}
+function sheetName(raw, taken){
+  let n=String(raw||'Sheet').replace(/[:\\/?*[\]]/g,'-').trim()||'Sheet';
+  if(n.length>31) n=n.slice(0,30).trim()+'…';
+  let c=n, i=2; while(taken.has(c.toLowerCase())){ const sfx=` (${i++})`; c=n.slice(0,31-sfx.length)+sfx; }
+  taken.add(c.toLowerCase()); return c;
+}
+function toXlsx(){
+  const p=exportPlan(), taken=new Set();
+  const sheets=p.sheets.map(s=>({...s, name:sheetName(s.name,taken)}));
+  const ov=sheets.map((_,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('');
+  const files=[
+    {name:'[Content_Types].xml',content:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${ov}</Types>`},
+    {name:'_rels/.rels',content:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`},
+    {name:'xl/workbook.xml',content:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${sheets.map((s,i)=>`<sheet name="${xmlEsc(s.name)}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join('')}</sheets></workbook>`},
+    {name:'xl/_rels/workbook.xml.rels',content:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sheets.map((s,i)=>`<Relationship Id="rId${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join('')}<Relationship Id="rIdStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`},
+    {name:'xl/styles.xml',content:STYLES_XML},
+    ...sheets.map((s,i)=>({name:`xl/worksheets/sheet${i+1}.xml`,content:sheetXml(s)}))
+  ];
+  downloadBlob(`${p.base}_${ts()}.xlsx`, zipStore(files));
+}
+
+/* ============================ EVENTS ============================ */
+$('#btnReset').onclick=()=>{
+  SOURCES=[]; offStatus.clear(); offSev.clear(); offType.clear(); offOwner.clear();
+  for(const arr of IMAGES.values()) for(const x of arr) URL.revokeObjectURL(x.url);
+  IMAGES.clear();
+  $('#q').value=''; $('#fModule').value=''; $('#fPlatform').value=''; sortKey='code'; sortDir=1;
+  try{ localStorage.removeItem(LS_KEY); }catch(e){}
+  $('#detail').classList.remove('open');
+  render();
+};
+$('#btnAdd').onclick=()=>$('#file').click();
+$('#btnAddFolder').onclick=()=>$('#folder').click();
+$('#file').onchange=e=>{ addFiles(e.target.files); e.target.value=''; };
+$('#folder').onchange=e=>{ addFiles(e.target.files); e.target.value=''; };
+$('#drop').onclick=()=>$('#folder').click();
+$('#btnCsv').onclick=toCsv; $('#btnXlsx').onclick=toXlsx;
+$('#btnClose').onclick=()=>$('#detail').classList.remove('open');
+$('#q').oninput=render; $('#fModule').onchange=render; $('#fPlatform').onchange=render;
+$('#showOldRuns').onchange=renderFrames;
+$('#catalogs').addEventListener('toggle',e=>{ const d=e.target.closest?.('[data-ck]'); if(d) CATALOG_OPEN.set(d.dataset.ck,d.open); },true);
+
+const dz=$('#drop');
+['dragenter','dragover'].forEach(ev=>document.addEventListener(ev,e=>{e.preventDefault();dz.classList.add('over')}));
+['dragleave','drop'].forEach(ev=>document.addEventListener(ev,e=>{e.preventDefault();dz.classList.remove('over')}));
+document.addEventListener('drop',async e=>{
+  if(!e.dataTransfer) return;
+  const files=await filesFromDrop(e.dataTransfer);
+  if(files.length) addFiles(files);
+});
+
+$('#files').onclick=e=>{
+  const rm=e.target.closest('[data-rm]');
+  if(rm){ const k=rm.dataset.rm; SOURCES=SOURCES.filter(s=>s.key!==k); save(); $('#detail').classList.remove('open'); render(); }
+};
+$('#tabs').onclick=e=>{ const b=e.target.closest('[data-tab]'); if(!b) return;
+  curTab=b.dataset.tab;
+  document.querySelectorAll('#tabs .tab').forEach(t=>t.classList.toggle('on',t===b));
+  $('#paneDiff').style.display=curTab==='diff'?'':'none';
+  $('#paneFrame').style.display=curTab==='frame'?'':'none';
+  $('#paneReport').style.display=curTab==='report'?'':'none';
+};
+const OFF={st:offStatus, sv:offSev, ty:offType, ow:offOwner};
+$('#paneDiff').addEventListener('click',e=>{ const b=e.target.closest('.chip[data-f]'); if(!b) return;
+  const set=OFF[b.dataset.f], v=b.dataset.v; set.has(v)?set.delete(v):set.add(v); render(); });
+document.querySelector('#tbl thead').onclick=e=>{ const th=e.target.closest('[data-s]'); if(!th) return;
+  const k=th.dataset.s; if(sortKey===k) sortDir*=-1; else { sortKey=k; sortDir=1; } renderDiffTable(); };
+$('#rows').onclick=e=>{ if(e.target.closest('[data-src]')) return;
+  const tr=e.target.closest('[data-i]'); if(!tr) return; openDiff(window.__rows[+tr.dataset.i]); };
+
+// uỷ quyền chung: ảnh → lightbox · mã DIFF → chi tiết DIFF · mã khung → chi tiết khung
+document.addEventListener('click',e=>{
+  const img=e.target.closest('[data-src]');
+  if(img){ e.preventDefault(); openLightboxFrom(img); return; }
+  const dc=e.target.closest('[data-diff]');
+  if(dc){ const rep=M.repByKey.get(dc.dataset.diff);
+    const d=rep && M.diffs.find(x=>x.code===dc.dataset.code && gKey(x.rep)===gKey(rep));
+    if(d) openDiff(d); else toast('Không tìm thấy '+dc.dataset.code+' trong bảng DIFF của báo cáo này'); return; }
+  const fr=e.target.closest('[data-frame]');
+  if(fr){ const rep=M.repByKey.get(fr.dataset.frame); if(rep) openFrame(rep, fr.dataset.code); }
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter' && e.target.matches?.('.fcard')){ e.target.click(); return; }
+  if(!$('#lightbox').classList.contains('open')){ if(e.key==='Escape') $('#detail').classList.remove('open'); return; }
+  if(e.key==='Escape') closeLightbox();
+  else if(e.key==='ArrowLeft') stepLb(-1);
+  else if(e.key==='ArrowRight') stepLb(1);
+});
+$('#lbClose').onclick=closeLightbox;
+$('#lbPrev').onclick=e=>{ e.stopPropagation(); stepLb(-1); };
+$('#lbNext').onclick=e=>{ e.stopPropagation(); stepLb(1); };
+$('#lightbox').addEventListener('click',e=>{ if(e.target.id==='lightbox') closeLightbox(); });
+
+/* Hook cho kiểm thử tự động (xem README) — nạp markdown bằng {đường_dẫn: nội_dung}, đi đúng luồng addSource
+   như khi kéo thả; không đổi hành vi với người dùng thường. */
+window.__loadTexts=map=>{ let n=0; for(const [p,t] of Object.entries(map||{})) if(addSource(p, baseName(p), t)) n++; save(); render(); return n; };
+
+load(); render();
+</script>
+</body>
+</html>
